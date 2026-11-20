@@ -1,8 +1,18 @@
 import 'dotenv/config';
 import * as argon2 from 'argon2';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { PrismaClient, RoleCode } from '../src/generated/prisma/client.js';
 
-const prisma = new PrismaClient();
+const adapter = new PrismaMariaDb({
+  host: process.env.DATABASE_HOST ?? 'localhost',
+  port: Number(process.env.DATABASE_PORT ?? 3307),
+  user: process.env.DATABASE_USER ?? 'tenqadam',
+  password: process.env.DATABASE_PASSWORD ?? 'tenqadam_dev_password',
+  database: process.env.DATABASE_NAME ?? 'tenqadam',
+  connectionLimit: 5,
+  allowPublicKeyRetrieval: true,
+});
+const prisma = new PrismaClient({ adapter });
 
 const roleRows: { code: RoleCode; labelKk: string; labelRu: string }[] = [
   { code: 'DEFECTOLOGIST', labelKk: 'Дефектолог', labelRu: 'Дефектолог' },

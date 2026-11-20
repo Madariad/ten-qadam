@@ -14,13 +14,13 @@ export class PrismaService
 {
   constructor() {
     const adapter = new PrismaMariaDb({
-      host: "localhost",
-      port: 3306,
-      user: "tenqadam",
-      password: "tenqadam_dev_password",
-      database: "tenqadam",
+      host: process.env.DATABASE_HOST ?? 'localhost',
+      port: Number(process.env.DATABASE_PORT ?? 3307),
+      user: process.env.DATABASE_USER ?? 'tenqadam',
+      password: process.env.DATABASE_PASSWORD ?? 'tenqadam_dev_password',
+      database: process.env.DATABASE_NAME ?? 'tenqadam',
       connectionLimit: 5,
-      allowPublicKeyRetrieval: true
+      allowPublicKeyRetrieval: true,
     });
 
     super({ adapter });
@@ -34,10 +34,3 @@ export class PrismaService
     await this.$disconnect();
   }
 }
-console.log({
-  DATABASE_HOST: process.env.DATABASE_HOST,
-  DATABASE_PORT: process.env.DATABASE_PORT,
-  DATABASE_USER: process.env.DATABASE_USER,
-  DATABASE_PASSWORD: process.env.DATABASE_PASSWORD,
-  DATABASE_NAME: process.env.DATABASE_NAME,
-});
