@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import type { AuthContext } from '../common/auth-context.js';
 import { AccessService } from '../common/access.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { ApplyRecommendationDto, CreateAssessmentDto, CreateObservationDto, CreatePlanActionDto, CreatePlanDto, CreateRecommendationDto, PrivateNoteDto, UpdatePlanActionDto } from './support.dto.js';
+import type { ApplyRecommendationDto, CreateAssessmentDto, CreateObservationDto, CreatePlanActionDto, CreatePlanDto, CreateRecommendationDto, GrantPrivateNoteAccessDto, PrivateNoteDto, UpdatePlanActionDto } from './support.dto.js';
 
 @Injectable()
 export class SupportService {
@@ -32,13 +32,13 @@ export class SupportService {
   }
 
   async applyRecommendation(user: AuthContext, studentId: string, recommendationId: string, body: ApplyRecommendationDto) {
-    this.access.requireAnyRole(user, ['SUBJECT_TEACHER']);
+    this.access.requireAnyRole(user, ['SUBJECT_TEACHER', 'DEFECTOLOGIST']);
     const recommendation = await this.prisma.recommendation.findFirst({ where: { id: recommendationId, studentId, institutionId: user.institutionId }, include: { goal: { select: { subjectId: true } } } });
     if (!recommendation) throw new NotFoundException('Рекомендация не найдена');
     await this.access.requireStudent(user, studentId, recommendation.goal?.subjectId);
     return this.prisma.$transaction(async (tx) => {
       const application = await tx.recommendationApplication.create({ data: { institutionId: user.institutionId, recommendationId, appliedById: user.userId, appliedAt: new Date(body.appliedAt), outcome: body.outcome, reflection: body.reflection } });
-      await tx.recommendation.update({ where: { id: recommendationId }, data: { status: 'IN_PROGRESS' } });
+      await tx.recommendation.update({ where: { id: recommendationId }, data: { status: 'COMPLETED' } });
       return application;
     });
   }
@@ -90,14 +90,42 @@ export class SupportService {
   }
 
   async privateNotes(user: AuthContext, studentId: string) {
-    this.access.requireAnyRole(user, ['PSYCHOLOGIST']);
     await this.access.requireStudent(user, studentId);
-    return this.prisma.specialistPrivateNote.findMany({ where: { institutionId: user.institutionId, studentId, OR: [{ authorId: user.userId }, { accessList: { some: { userId: user.userId } } }] }, select: { id: true, title: true, content: true, domain: true, createdAt: true, authorId: true }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.specialistPrivateNote.findMany({
+      where: {
+        institutionId: user.institutionId,
+        studentId,
+        OR: [{ authorId: user.userId }, { accessList: { some: { userId: user.userId } } }],
+      },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        domain: true,
+        createdAt: true,
+        authorId: true,
+        author: { select: { displayName: true } },
+        accessList: { select: { userId: true, user: { select: { displayName: true } } } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async addPrivateNote(user: AuthContext, studentId: string, body: PrivateNoteDto) {
     this.access.requireAnyRole(user, ['PSYCHOLOGIST']);
     await this.access.requireStudent(user, studentId);
     return this.prisma.specialistPrivateNote.create({ data: { institutionId: user.institutionId, studentId, authorId: user.userId, domain: 'PSYCHOLOGIST', title: body.title, content: body.content } });
+  }
+
+  async grantPrivateNoteAccess(user: AuthContext, studentId: string, noteId: string, body: GrantPrivateNoteAccessDto) {
+    this.access.requireAnyRole(user, ['PSYCHOLOGIST']);
+    await this.access.requireStudent(user, studentId);
+    const note = await this.prisma.specialistPrivateNote.findFirst({ where: { id: noteId, studentId, institutionId: user.institutionId, authorId: user.userId } });
+    if (!note) throw new NotFoundException('Приватная заметка не найдена');
+    return this.prisma.privateNoteAccess.upsert({
+      where: { noteId_userId: { noteId, userId: body.userId } },
+      update: {},
+      create: { noteId, userId: body.userId },
+    });
   }
 }

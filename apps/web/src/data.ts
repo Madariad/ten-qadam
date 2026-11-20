@@ -1,5 +1,5 @@
 export type Role = 'defectologist' | 'teacher' | 'psychologist' | 'social' | 'admin';
-export type SectionKey = 'home' | 'normative' | 'students' | 'guides' | 'metrics' | 'plans' | 'collaboration' | 'library' | 'reports';
+export type SectionKey = 'home' | 'normative' | 'students' | 'guides' | 'metrics' | 'plans' | 'collaboration' | 'library' | 'reports' | 'users';
 
 export const roleLabels: Record<Role, { kk: string; ru: string }> = {
   defectologist: { kk: 'Дефектолог', ru: 'Дефектолог' },
@@ -11,6 +11,7 @@ export const roleLabels: Record<Role, { kk: string; ru: string }> = {
 
 export const navigation: { key: SectionKey; label: string; icon: string }[] = [
   { key: 'home', label: 'home', icon: 'home' },
+  { key: 'users', label: 'users', icon: 'manage_accounts' },
   { key: 'normative', label: 'normative', icon: 'description' },
   { key: 'students', label: 'students', icon: 'groups' },
   { key: 'guides', label: 'guides', icon: 'menu_book' },
@@ -26,7 +27,7 @@ export const permissions: Record<Role, SectionKey[]> = {
   teacher: ['home', 'normative', 'students', 'guides', 'metrics', 'plans', 'collaboration', 'library', 'reports'],
   psychologist: ['home', 'normative', 'students', 'plans', 'collaboration', 'library', 'reports'],
   social: ['home', 'normative', 'students', 'plans', 'collaboration', 'library', 'reports'],
-  admin: ['home', 'normative', 'guides', 'metrics', 'reports'],
+  admin: ['home', 'users', 'normative', 'guides', 'metrics', 'reports'],
 };
 
 export const student = {

@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nest
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { SessionGuard } from '../auth/session.guard.js';
-import { ApplyRecommendationDto, CreateAssessmentDto, CreateObservationDto, CreatePlanActionDto, CreatePlanDto, CreateRecommendationDto, PrivateNoteDto, UpdatePlanActionDto } from './support.dto.js';
+import { ApplyRecommendationDto, CreateAssessmentDto, CreateObservationDto, CreatePlanActionDto, CreatePlanDto, CreateRecommendationDto, GrantPrivateNoteAccessDto, PrivateNoteDto, UpdatePlanActionDto } from './support.dto.js';
 import { SupportService } from './support.service.js';
 
 @ApiTags('support')
@@ -21,4 +21,5 @@ export class SupportController {
   @Post('students/:studentId/assessments') assessment(@Req() request: Request, @Param('studentId') studentId: string, @Body() body: CreateAssessmentDto) { return this.support.addAssessment(request.auth!, studentId, body); }
   @Get('students/:studentId/private-notes') privateNotes(@Req() request: Request, @Param('studentId') studentId: string) { return this.support.privateNotes(request.auth!, studentId); }
   @Post('students/:studentId/private-notes') addPrivateNote(@Req() request: Request, @Param('studentId') studentId: string, @Body() body: PrivateNoteDto) { return this.support.addPrivateNote(request.auth!, studentId, body); }
+  @Post('students/:studentId/private-notes/:noteId/access') grantNoteAccess(@Req() request: Request, @Param('studentId') studentId: string, @Param('noteId') noteId: string, @Body() body: GrantPrivateNoteAccessDto) { return this.support.grantPrivateNoteAccess(request.auth!, studentId, noteId, body); }
 }

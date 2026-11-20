@@ -62,3 +62,7 @@ export class PrivateNoteDto {
   @IsString() @Length(3, 180) title!: string;
   @IsString() @Length(3, 3000) content!: string;
 }
+
+export class GrantPrivateNoteAccessDto {
+  @IsString() @Length(36, 36) userId!: string;
+}

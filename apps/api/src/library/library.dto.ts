@@ -10,3 +10,12 @@ export class CreateLibraryItemDto {
   @IsOptional() @IsString() @Length(0, 4000) summaryRu?: string;
   @IsOptional() @IsBoolean() isPublished?: boolean;
 }
+
+export class UpdateLibraryItemDto {
+  @IsOptional() @IsString() @Length(2, 100) category?: string;
+  @IsOptional() @IsString() @Length(2, 240) titleKk?: string;
+  @IsOptional() @IsString() @Length(2, 240) titleRu?: string;
+  @IsOptional() @IsString() @Length(0, 4000) summaryKk?: string;
+  @IsOptional() @IsString() @Length(0, 4000) summaryRu?: string;
+  @IsOptional() @IsBoolean() isPublished?: boolean;
+}

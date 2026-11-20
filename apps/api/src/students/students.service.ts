@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import type { AuthContext } from '../common/auth-context.js';
 import { AccessService } from '../common/access.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { CreateAssignmentDto, CreateStudentDto } from './students.dto.js';
+import type { CreateAssignmentDto, CreateLearningGoalDto, CreateStudentDto, CreateSupportProfileDto } from './students.dto.js';
 
 @Injectable()
 export class StudentsService {
@@ -29,6 +29,24 @@ export class StudentsService {
     return this.prisma.studyGroup.findMany({ where: { institutionId: user.institutionId }, select: { id: true, code: true, specialty: { select: { nameKk: true, nameRu: true } } }, orderBy: { code: 'asc' } });
   }
 
+  async subjects(user: AuthContext) {
+    this.access.requireAnyRole(user, ['DEFECTOLOGIST', 'SUBJECT_TEACHER', 'PSYCHOLOGIST', 'SOCIAL_PEDAGOG']);
+    return this.prisma.subject.findMany({ where: { institutionId: user.institutionId }, select: { id: true, code: true, nameKk: true, nameRu: true }, orderBy: { nameKk: 'asc' } });
+  }
+
+  async specialists(user: AuthContext) {
+    this.access.requireAnyRole(user, ['DEFECTOLOGIST', 'PSYCHOLOGIST', 'SOCIAL_PEDAGOG']);
+    return this.prisma.user.findMany({
+      where: {
+        institutionId: user.institutionId,
+        status: 'ACTIVE',
+        roles: { some: { role: { code: { in: ['DEFECTOLOGIST', 'SUBJECT_TEACHER', 'PSYCHOLOGIST', 'SOCIAL_PEDAGOG'] } } } },
+      },
+      select: { id: true, login: true, displayName: true, roles: { include: { role: { select: { code: true, labelKk: true, labelRu: true } } } } },
+      orderBy: { displayName: 'asc' },
+    });
+  }
+
   async findOne(user: AuthContext, studentId: string) {
     await this.access.requireStudent(user, studentId);
     const allowedSubjects = await this.access.assignedSubjectIds(user, studentId);
@@ -36,13 +54,57 @@ export class StudentsService {
       : user.roles.includes('SUBJECT_TEACHER') ? ['PEDAGOGICAL']
         : user.roles.includes('PSYCHOLOGIST') ? ['PSYCHOLOGICAL']
           : user.roles.includes('SOCIAL_PEDAGOG') ? ['SOCIAL'] : [];
+    const now = new Date();
     const record = await this.prisma.student.findFirst({
       where: { id: studentId, institutionId: user.institutionId },
       include: {
         group: { include: { specialty: true } },
-        supportProfiles: { where: profileCategories ? { category: { in: profileCategories } } : undefined, orderBy: { createdAt: 'desc' }, take: 10 },
-        goals: { where: { status: 'ACTIVE', ...(allowedSubjects ? { subjectId: { in: allowedSubjects } } : {}) }, include: { subject: true, assessments: { include: { results: true }, orderBy: { assessedAt: 'desc' }, take: 2 }, recommendations: { orderBy: { createdAt: 'desc' }, take: 5 } } },
-        plans: { where: { status: { in: ['IN_PROGRESS', 'PLANNED'] } }, include: { actions: { where: allowedSubjects ? { OR: [{ goalId: null }, { goal: { subjectId: { in: allowedSubjects } } }] } : undefined, orderBy: { dueAt: 'asc' } } }, orderBy: { periodStart: 'desc' }, take: 3 },
+        assignments: {
+          where: { validFrom: { lte: now }, OR: [{ validUntil: null }, { validUntil: { gt: now } }] },
+          include: {
+            user: { select: { id: true, displayName: true, roles: { include: { role: { select: { code: true, labelKk: true, labelRu: true } } } } } },
+            subject: { select: { id: true, nameKk: true, nameRu: true } },
+          },
+          orderBy: { validFrom: 'desc' },
+        },
+        supportProfiles: { where: profileCategories ? { category: { in: profileCategories } } : undefined, include: { createdBy: { select: { displayName: true } } }, orderBy: { createdAt: 'desc' }, take: 20 },
+        goals: {
+          where: { status: 'ACTIVE', ...(allowedSubjects ? { subjectId: { in: allowedSubjects } } : {}) },
+          include: {
+            subject: true,
+            assessments: { include: { results: true, assessor: { select: { displayName: true } } }, orderBy: { assessedAt: 'desc' }, take: 10 },
+            recommendations: { include: { author: { select: { displayName: true } }, applications: { include: { appliedBy: { select: { displayName: true } } }, orderBy: { appliedAt: 'desc' } } }, orderBy: { createdAt: 'desc' }, take: 20 },
+            observations: { include: { author: { select: { displayName: true } }, subject: true }, orderBy: { observedAt: 'desc' }, take: 20 },
+          },
+        },
+        observations: {
+          where: allowedSubjects ? { OR: [{ subjectId: { in: allowedSubjects } }, { goal: { subjectId: { in: allowedSubjects } } }] } : undefined,
+          include: { author: { select: { displayName: true } }, subject: true, goal: { select: { id: true, titleKk: true, titleRu: true } } },
+          orderBy: { observedAt: 'desc' },
+          take: 30,
+        },
+        recommendations: {
+          where: allowedSubjects ? { OR: [{ goalId: null }, { goal: { subjectId: { in: allowedSubjects } } }] } : undefined,
+          include: {
+            author: { select: { displayName: true } },
+            goal: { select: { id: true, titleKk: true, titleRu: true } },
+            applications: { include: { appliedBy: { select: { displayName: true } } }, orderBy: { appliedAt: 'desc' } },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 30,
+        },
+        plans: {
+          where: { status: { in: ['IN_PROGRESS', 'PLANNED'] } },
+          include: {
+            actions: {
+              where: allowedSubjects ? { OR: [{ goalId: null }, { goal: { subjectId: { in: allowedSubjects } } }] } : undefined,
+              include: { responsible: { select: { id: true, displayName: true } }, goal: { select: { id: true, titleKk: true, titleRu: true } } },
+              orderBy: { dueAt: 'asc' },
+            },
+          },
+          orderBy: { periodStart: 'desc' },
+          take: 5,
+        },
       },
     });
     if (!record) throw new NotFoundException('Студент не найден');
@@ -57,6 +119,45 @@ export class StudentsService {
       const student = await tx.student.create({ data: { institutionId: user.institutionId, studentCode: body.studentCode, fullName: body.fullName, groupId: body.groupId } });
       await tx.userStudentAssignment.create({ data: { institutionId: user.institutionId, userId: user.userId, studentId: student.id, assignedById: user.userId } });
       return student;
+    });
+  }
+
+  async addSupportProfile(user: AuthContext, studentId: string, body: CreateSupportProfileDto) {
+    this.access.requireAnyRole(user, ['DEFECTOLOGIST', 'PSYCHOLOGIST', 'SOCIAL_PEDAGOG']);
+    await this.access.requireStudent(user, studentId);
+    const allowedCategory = user.roles.includes('DEFECTOLOGIST') ? body.category
+      : user.roles.includes('PSYCHOLOGIST') ? 'PSYCHOLOGICAL'
+        : 'SOCIAL';
+    return this.prisma.studentSupportProfile.create({
+      data: {
+        institutionId: user.institutionId,
+        studentId,
+        createdById: user.userId,
+        category: allowedCategory,
+        description: body.description,
+        reviewAt: body.reviewAt ? new Date(body.reviewAt) : undefined,
+      },
+    });
+  }
+
+  async addGoal(user: AuthContext, studentId: string, body: CreateLearningGoalDto) {
+    this.access.requireAnyRole(user, ['DEFECTOLOGIST', 'SUBJECT_TEACHER']);
+    await this.access.requireStudent(user, studentId, body.subjectId);
+    const subject = await this.prisma.subject.findFirst({ where: { id: body.subjectId, institutionId: user.institutionId } });
+    if (!subject) throw new NotFoundException('Предмет не найден');
+    return this.prisma.learningGoal.create({
+      data: {
+        institutionId: user.institutionId,
+        studentId,
+        subjectId: body.subjectId,
+        ownerId: user.userId,
+        titleKk: body.titleKk,
+        titleRu: body.titleRu,
+        successCriteria: body.successCriteria,
+        targetDate: body.targetDate ? new Date(body.targetDate) : undefined,
+        status: 'ACTIVE',
+      },
+      include: { subject: true },
     });
   }
 

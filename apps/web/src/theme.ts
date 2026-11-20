@@ -1,30 +1,38 @@
 import { createTheme } from '@mui/material/styles';
 
+const fontStack = '"Noto Sans", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+const headingStack = '"Rubik", "Noto Sans", "Segoe UI", Roboto, Arial, sans-serif';
+
 export const theme = createTheme({
   palette: {
-    primary: { main: '#2764d9', dark: '#121d51', light: '#eaf1ff' },
-    secondary: { main: '#8050ca' },
-    success: { main: '#36b878' },
-    background: { default: '#f1f3fb', paper: '#ffffff' },
-    text: { primary: '#171b45', secondary: '#64708f' },
+    primary: { main: '#2563eb', dark: '#121d51', light: '#eaf1ff' },
+    secondary: { main: '#7c3aed' },
+    success: { main: '#16a34a' },
+    background: { default: '#eef2fa', paper: '#ffffff' },
+    text: { primary: '#141b41', secondary: '#4b5675' },
   },
   typography: {
-    fontFamily: 'Inter, "Segoe UI", Arial, sans-serif',
-    h1: { fontWeight: 800, letterSpacing: '-0.04em' },
-    h2: { fontWeight: 800, letterSpacing: '-0.035em' },
-    h3: { fontWeight: 800, letterSpacing: '-0.025em' },
-    button: { textTransform: 'none', fontWeight: 700 },
+    fontFamily: fontStack,
+    h1: { fontFamily: headingStack, fontWeight: 800, letterSpacing: '-0.02em' },
+    h2: { fontFamily: headingStack, fontWeight: 700, letterSpacing: '-0.015em' },
+    h3: { fontFamily: headingStack, fontWeight: 700, letterSpacing: '-0.01em' },
+    button: { fontFamily: fontStack, textTransform: 'none', fontWeight: 600 },
   },
-  shape: { borderRadius: 16 },
+  shape: { borderRadius: 14 },
   components: {
     MuiButton: {
       styleOverrides: {
-        root: { borderRadius: 12, boxShadow: 'none' },
+        root: { borderRadius: 11, boxShadow: 'none', fontWeight: 600 },
       },
     },
     MuiPaper: {
       styleOverrides: {
         rounded: { borderRadius: 18 },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: { fontFamily: fontStack, fontWeight: 600 },
       },
     },
   },

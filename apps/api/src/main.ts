@@ -9,7 +9,11 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: false });
   const allowedOrigin = process.env.WEB_ORIGIN ?? 'http://localhost:5173';
   app.setGlobalPrefix('api/v1');
-  app.use(helmet({ crossOriginResourcePolicy: { policy: 'same-site' } }));
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'same-site' },
+    contentSecurityPolicy: false,
+    frameguard: false,
+  }));
   app.enableCors({ origin: allowedOrigin, credentials: true, methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'X-Request-Id'] });
   app.use((request: { method: string; headers: Record<string, string | string[] | undefined> }, response: { status: (code: number) => { json: (body: unknown) => void } }, next: () => void) => {
     const changesState = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method.toUpperCase());

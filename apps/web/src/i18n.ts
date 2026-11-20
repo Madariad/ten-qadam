@@ -3,6 +3,7 @@ export type Language = 'kk' | 'ru';
 export const copy = {
   kk: {
     home: 'Басты бет',
+    users: 'Пайдаланушылар мен рөлдер',
     normative: 'Нормативтік құжаттар',
     students: 'Студенттер базасы',
     guides: 'Педагогтерге нұсқаулық',
@@ -57,6 +58,7 @@ export const copy = {
   },
   ru: {
     home: 'Главная',
+    users: 'Пользователи и роли',
     normative: 'Нормативные документы',
     students: 'База студентов',
     guides: 'Инструкции педагогам',
