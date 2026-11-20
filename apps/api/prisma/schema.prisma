@@ -1,0 +1,619 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum RoleCode {
+  DEFECTOLOGIST
+  SUBJECT_TEACHER
+  PSYCHOLOGIST
+  SOCIAL_PEDAGOG
+  ADMINISTRATOR
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum StudentStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum GoalStatus {
+  ACTIVE
+  PAUSED
+  ACHIEVED
+  ARCHIVED
+}
+
+enum WorkflowStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum AssessmentKind {
+  BASELINE
+  REASSESSMENT
+}
+
+enum LibraryKind {
+  NORMATIVE
+  TEACHER_GUIDE
+  METHODICAL
+}
+
+enum ThreadStatus {
+  OPEN
+  CLOSED
+}
+
+model Institution {
+  id             String       @id @default(uuid()) @db.Char(36)
+  name           String       @db.VarChar(180)
+  code           String       @unique @db.VarChar(32)
+  timezone       String       @default("Asia/Almaty") @db.VarChar(48)
+  createdAt      DateTime     @default(now()) @db.DateTime(3)
+  updatedAt      DateTime     @updatedAt @db.DateTime(3)
+  users          User[]
+  students       Student[]
+  groups         StudyGroup[]
+  specialties    Specialty[]
+  subjects       Subject[]
+  assignments    UserStudentAssignment[]
+  goals          LearningGoal[]
+  observations   Observation[]
+  recommendations Recommendation[]
+  applications   RecommendationApplication[]
+  assessments    AssessmentSession[]
+  plans          SupportPlan[]
+  supportProfiles StudentSupportProfile[]
+  privateNotes   SpecialistPrivateNote[]
+  threads        CollaborationThread[]
+  libraryItems   LibraryItem[]
+  processingRecords DataProcessingRecord[]
+  retentionPolicies RetentionPolicy[]
+  auditLogs      AuditLog[]
+  notifications Notification[]
+
+  @@map("institutions")
+}
+
+model User {
+  id                    String       @id @default(uuid()) @db.Char(36)
+  institutionId         String       @db.Char(36)
+  login                 String       @db.VarChar(100)
+  displayName           String       @db.VarChar(160)
+  passwordHash          String       @db.VarChar(255)
+  status                UserStatus   @default(ACTIVE)
+  lastLoginAt           DateTime?    @db.DateTime(3)
+  createdAt             DateTime     @default(now()) @db.DateTime(3)
+  updatedAt             DateTime     @updatedAt @db.DateTime(3)
+  institution           Institution  @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  roles                 UserRole[]
+  sessions              UserSession[]
+  assignments           UserStudentAssignment[] @relation("AssignmentUser")
+  createdAssignments    UserStudentAssignment[] @relation("AssignmentCreator")
+  ownedGoals            LearningGoal[] @relation("GoalOwner")
+  observations          Observation[] @relation("ObservationAuthor")
+  recommendations       Recommendation[] @relation("RecommendationAuthor")
+  applications          RecommendationApplication[] @relation("ApplicationAuthor")
+  assessments           AssessmentSession[] @relation("AssessmentAuthor")
+  createdPlans          SupportPlan[] @relation("PlanCreator")
+  responsibleActions    SupportPlanAction[] @relation("ActionOwner")
+  supportProfiles       StudentSupportProfile[] @relation("SupportProfileAuthor")
+  privateNotes          SpecialistPrivateNote[] @relation("PrivateNoteAuthor")
+  privateNoteAccess     PrivateNoteAccess[]
+  threadMemberships    ThreadMember[]
+  messages              Message[]
+  libraryItems          LibraryItem[] @relation("LibraryAuthor")
+  uploadedFiles         LibraryFile[] @relation("FileUploader")
+  processingRecords     DataProcessingRecord[] @relation("ProcessingRecorder")
+  auditLogs             AuditLog[]
+  notifications         Notification[]
+
+  @@unique([institutionId, login])
+  @@index([institutionId, status])
+  @@map("users")
+}
+
+model Role {
+  id          String     @id @default(uuid()) @db.Char(36)
+  code        RoleCode   @unique
+  labelKk     String     @db.VarChar(100)
+  labelRu     String     @db.VarChar(100)
+  description String?    @db.VarChar(400)
+  userRoles   UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId String @db.Char(36)
+  roleId String @db.Char(36)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model UserSession {
+  id         String   @id @default(uuid()) @db.Char(36)
+  userId     String   @db.Char(36)
+  tokenHash  String   @unique @db.Char(64)
+  expiresAt  DateTime @db.DateTime(3)
+  revokedAt  DateTime? @db.DateTime(3)
+  createdAt  DateTime @default(now()) @db.DateTime(3)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("user_sessions")
+}
+
+model Specialty {
+  id             String      @id @default(uuid()) @db.Char(36)
+  institutionId  String      @db.Char(36)
+  code           String      @db.VarChar(32)
+  nameKk         String      @db.VarChar(160)
+  nameRu         String      @db.VarChar(160)
+  institution    Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  groups         StudyGroup[]
+
+  @@unique([institutionId, code])
+  @@index([institutionId])
+  @@map("specialties")
+}
+
+model StudyGroup {
+  id             String      @id @default(uuid()) @db.Char(36)
+  institutionId  String      @db.Char(36)
+  specialtyId    String      @db.Char(36)
+  code           String      @db.VarChar(32)
+  academicYear   String      @db.VarChar(16)
+  institution    Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  specialty      Specialty   @relation(fields: [specialtyId], references: [id], onDelete: Restrict)
+  students       Student[]
+
+  @@unique([institutionId, code, academicYear])
+  @@index([institutionId, specialtyId])
+  @@map("study_groups")
+}
+
+model Subject {
+  id             String      @id @default(uuid()) @db.Char(36)
+  institutionId  String      @db.Char(36)
+  code           String      @db.VarChar(32)
+  nameKk         String      @db.VarChar(160)
+  nameRu         String      @db.VarChar(160)
+  institution    Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  assignments    UserStudentAssignment[]
+  goals          LearningGoal[]
+  observations   Observation[]
+
+  @@unique([institutionId, code])
+  @@index([institutionId])
+  @@map("subjects")
+}
+
+model Student {
+  id             String       @id @default(uuid()) @db.Char(36)
+  institutionId  String       @db.Char(36)
+  groupId        String       @db.Char(36)
+  studentCode    String       @db.VarChar(60)
+  fullName       String       @db.VarChar(160)
+  status         StudentStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now()) @db.DateTime(3)
+  updatedAt      DateTime     @updatedAt @db.DateTime(3)
+  institution    Institution  @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  group          StudyGroup   @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  assignments    UserStudentAssignment[]
+  supportProfiles StudentSupportProfile[]
+  goals          LearningGoal[]
+  observations   Observation[]
+  recommendations Recommendation[]
+  assessments    AssessmentSession[]
+  plans          SupportPlan[]
+  privateNotes   SpecialistPrivateNote[]
+  threads        CollaborationThread[]
+  processingRecords DataProcessingRecord[]
+  auditLogs      AuditLog[]
+
+  @@unique([institutionId, studentCode])
+  @@index([institutionId, groupId, status])
+  @@index([institutionId, fullName])
+  @@map("students")
+}
+
+model UserStudentAssignment {
+  id             String      @id @default(uuid()) @db.Char(36)
+  institutionId  String      @db.Char(36)
+  userId         String      @db.Char(36)
+  studentId      String      @db.Char(36)
+  subjectId      String?     @db.Char(36)
+  assignedById   String?     @db.Char(36)
+  validFrom      DateTime    @default(now()) @db.DateTime(3)
+  validUntil     DateTime?   @db.DateTime(3)
+  institution    Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  user           User        @relation("AssignmentUser", fields: [userId], references: [id], onDelete: Cascade)
+  student        Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject        Subject?    @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  assignedBy     User?       @relation("AssignmentCreator", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  @@index([institutionId, userId, validUntil])
+  @@index([institutionId, studentId, subjectId])
+  @@map("user_student_assignments")
+}
+
+model StudentSupportProfile {
+  id             String      @id @default(uuid()) @db.Char(36)
+  institutionId  String      @db.Char(36)
+  studentId      String      @db.Char(36)
+  createdById    String      @db.Char(36)
+  category       String      @db.VarChar(60)
+  description    String      @db.Text
+  reviewAt       DateTime?   @db.DateTime(3)
+  createdAt      DateTime    @default(now()) @db.DateTime(3)
+  institution    Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  student        Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdBy      User        @relation("SupportProfileAuthor", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([institutionId, studentId, reviewAt])
+  @@map("student_support_profiles")
+}
+
+model LearningGoal {
+  id             String      @id @default(uuid()) @db.Char(36)
+  institutionId  String      @db.Char(36)
+  studentId      String      @db.Char(36)
+  subjectId      String      @db.Char(36)
+  ownerId        String      @db.Char(36)
+  titleKk        String      @db.VarChar(240)
+  titleRu        String      @db.VarChar(240)
+  successCriteria String     @db.Text
+  targetDate     DateTime?   @db.DateTime(3)
+  status         GoalStatus  @default(ACTIVE)
+  createdAt      DateTime    @default(now()) @db.DateTime(3)
+  updatedAt      DateTime    @updatedAt @db.DateTime(3)
+  institution    Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  student        Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject        Subject     @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  owner          User        @relation("GoalOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  observations   Observation[]
+  recommendations Recommendation[]
+  assessments    AssessmentSession[]
+  planActions    SupportPlanAction[]
+
+  @@index([institutionId, studentId, status])
+  @@index([institutionId, subjectId, status])
+  @@map("learning_goals")
+}
+
+model Observation {
+  id              String      @id @default(uuid()) @db.Char(36)
+  institutionId   String      @db.Char(36)
+  studentId       String      @db.Char(36)
+  goalId          String?     @db.Char(36)
+  subjectId       String?     @db.Char(36)
+  authorId        String      @db.Char(36)
+  observedAt      DateTime    @db.DateTime(3)
+  context         String?     @db.VarChar(180)
+  observationText String      @db.Text
+  createdAt       DateTime    @default(now()) @db.DateTime(3)
+  institution     Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  student         Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  goal            LearningGoal? @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  subject         Subject?    @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  author          User        @relation("ObservationAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([institutionId, studentId, observedAt])
+  @@index([institutionId, goalId, observedAt])
+  @@map("observations")
+}
+
+model Recommendation {
+  id             String      @id @default(uuid()) @db.Char(36)
+  institutionId  String      @db.Char(36)
+  studentId      String      @db.Char(36)
+  goalId         String?     @db.Char(36)
+  authorId       String      @db.Char(36)
+  domain         RoleCode
+  title          String      @db.VarChar(200)
+  content        String      @db.Text
+  status         WorkflowStatus @default(PLANNED)
+  createdAt      DateTime    @default(now()) @db.DateTime(3)
+  updatedAt      DateTime    @updatedAt @db.DateTime(3)
+  institution    Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  student        Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  goal           LearningGoal? @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  author         User        @relation("RecommendationAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  applications   RecommendationApplication[]
+
+  @@index([institutionId, studentId, status, createdAt])
+  @@map("recommendations")
+}
+
+model RecommendationApplication {
+  id                String      @id @default(uuid()) @db.Char(36)
+  institutionId     String      @db.Char(36)
+  recommendationId  String      @db.Char(36)
+  appliedById       String      @db.Char(36)
+  appliedAt         DateTime    @db.DateTime(3)
+  outcome           String?     @db.VarChar(300)
+  reflection        String?     @db.Text
+  institution       Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  recommendation    Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  appliedBy         User        @relation("ApplicationAuthor", fields: [appliedById], references: [id], onDelete: Restrict)
+
+  @@index([institutionId, recommendationId, appliedAt])
+  @@map("recommendation_applications")
+}
+
+model AssessmentSession {
+  id             String        @id @default(uuid()) @db.Char(36)
+  institutionId  String        @db.Char(36)
+  studentId      String        @db.Char(36)
+  goalId         String        @db.Char(36)
+  assessorId     String        @db.Char(36)
+  kind           AssessmentKind
+  assessedAt     DateTime      @db.DateTime(3)
+  note           String?       @db.Text
+  createdAt      DateTime      @default(now()) @db.DateTime(3)
+  institution    Institution   @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  student        Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  goal           LearningGoal  @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  assessor       User          @relation("AssessmentAuthor", fields: [assessorId], references: [id], onDelete: Restrict)
+  results        AssessmentResult[]
+
+  @@index([institutionId, studentId, goalId, assessedAt])
+  @@index([institutionId, kind, assessedAt])
+  @@map("assessment_sessions")
+}
+
+model AssessmentResult {
+  id             String           @id @default(uuid()) @db.Char(36)
+  sessionId      String           @db.Char(36)
+  criterion      String           @db.VarChar(120)
+  score          Decimal          @db.Decimal(6, 2)
+  scaleMin       Decimal          @default(0) @db.Decimal(6, 2)
+  scaleMax       Decimal          @default(100) @db.Decimal(6, 2)
+  evidence       String?          @db.Text
+  session        AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, criterion])
+  @@map("assessment_results")
+}
+
+model SupportPlan {
+  id             String      @id @default(uuid()) @db.Char(36)
+  institutionId  String      @db.Char(36)
+  studentId      String      @db.Char(36)
+  createdById    String      @db.Char(36)
+  title          String      @db.VarChar(200)
+  periodStart    DateTime    @db.DateTime(3)
+  periodEnd      DateTime?   @db.DateTime(3)
+  status         WorkflowStatus @default(IN_PROGRESS)
+  createdAt      DateTime    @default(now()) @db.DateTime(3)
+  updatedAt      DateTime    @updatedAt @db.DateTime(3)
+  institution    Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  student        Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdBy      User        @relation("PlanCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  actions        SupportPlanAction[]
+
+  @@index([institutionId, studentId, status])
+  @@map("support_plans")
+}
+
+model SupportPlanAction {
+  id              String       @id @default(uuid()) @db.Char(36)
+  planId          String       @db.Char(36)
+  goalId          String?      @db.Char(36)
+  responsibleId   String       @db.Char(36)
+  titleKk         String       @db.VarChar(200)
+  titleRu         String       @db.VarChar(200)
+  description     String?      @db.Text
+  dueAt           DateTime?    @db.DateTime(3)
+  status          WorkflowStatus @default(PLANNED)
+  completedAt     DateTime?    @db.DateTime(3)
+  result          String?      @db.Text
+  plan            SupportPlan  @relation(fields: [planId], references: [id], onDelete: Cascade)
+  goal            LearningGoal? @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  responsible     User         @relation("ActionOwner", fields: [responsibleId], references: [id], onDelete: Restrict)
+
+  @@index([planId, status, dueAt])
+  @@index([responsibleId, status, dueAt])
+  @@map("support_plan_actions")
+}
+
+model SpecialistPrivateNote {
+  id             String      @id @default(uuid()) @db.Char(36)
+  institutionId  String      @db.Char(36)
+  studentId      String      @db.Char(36)
+  authorId       String      @db.Char(36)
+  domain         RoleCode
+  title          String      @db.VarChar(180)
+  content        String      @db.Text
+  createdAt      DateTime    @default(now()) @db.DateTime(3)
+  updatedAt      DateTime    @updatedAt @db.DateTime(3)
+  institution    Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  student        Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  author         User        @relation("PrivateNoteAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  accessList     PrivateNoteAccess[]
+
+  @@index([institutionId, studentId, domain, createdAt])
+  @@map("specialist_private_notes")
+}
+
+model PrivateNoteAccess {
+  noteId    String               @db.Char(36)
+  userId    String               @db.Char(36)
+  grantedAt DateTime             @default(now()) @db.DateTime(3)
+  note      SpecialistPrivateNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, userId])
+  @@index([userId])
+  @@map("private_note_access")
+}
+
+model CollaborationThread {
+  id             String       @id @default(uuid()) @db.Char(36)
+  institutionId  String       @db.Char(36)
+  studentId      String       @db.Char(36)
+  title          String       @db.VarChar(180)
+  status         ThreadStatus @default(OPEN)
+  createdAt      DateTime     @default(now()) @db.DateTime(3)
+  updatedAt      DateTime     @updatedAt @db.DateTime(3)
+  institution    Institution  @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  members        ThreadMember[]
+  messages       Message[]
+
+  @@index([institutionId, studentId, status, updatedAt])
+  @@map("collaboration_threads")
+}
+
+model ThreadMember {
+  threadId String              @db.Char(36)
+  userId   String              @db.Char(36)
+  joinedAt DateTime            @default(now()) @db.DateTime(3)
+  thread   CollaborationThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([threadId, userId])
+  @@index([userId])
+  @@map("thread_members")
+}
+
+model Message {
+  id        String              @id @default(uuid()) @db.Char(36)
+  threadId  String              @db.Char(36)
+  authorId  String              @db.Char(36)
+  body      String              @db.Text
+  createdAt DateTime            @default(now()) @db.DateTime(3)
+  thread    CollaborationThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author    User                @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([threadId, createdAt])
+  @@map("messages")
+}
+
+model LibraryItem {
+  id             String      @id @default(uuid()) @db.Char(36)
+  institutionId  String      @db.Char(36)
+  createdById    String      @db.Char(36)
+  kind           LibraryKind
+  category       String      @db.VarChar(100)
+  titleKk        String      @db.VarChar(240)
+  titleRu        String      @db.VarChar(240)
+  summaryKk      String?     @db.Text
+  summaryRu      String?     @db.Text
+  publishedAt    DateTime?   @db.DateTime(3)
+  isPublished    Boolean     @default(false)
+  createdAt      DateTime    @default(now()) @db.DateTime(3)
+  updatedAt      DateTime    @updatedAt @db.DateTime(3)
+  institution    Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  createdBy      User        @relation("LibraryAuthor", fields: [createdById], references: [id], onDelete: Restrict)
+  files          LibraryFile[]
+
+  @@index([institutionId, kind, isPublished])
+  @@fulltext([titleKk, titleRu, summaryKk, summaryRu])
+  @@map("library_items")
+}
+
+model LibraryFile {
+  id             String      @id @default(uuid()) @db.Char(36)
+  itemId         String      @db.Char(36)
+  uploadedById   String      @db.Char(36)
+  objectKey      String      @db.VarChar(500)
+  originalName   String      @db.VarChar(255)
+  mimeType       String      @db.VarChar(120)
+  sizeBytes      BigInt
+  checksum       String?     @db.Char(64)
+  createdAt      DateTime    @default(now()) @db.DateTime(3)
+  item           LibraryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  uploadedBy     User        @relation("FileUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([itemId])
+  @@map("library_files")
+}
+
+model DataProcessingRecord {
+  id             String      @id @default(uuid()) @db.Char(36)
+  institutionId  String      @db.Char(36)
+  studentId      String      @db.Char(36)
+  recordedById   String      @db.Char(36)
+  purposeCode    String      @db.VarChar(80)
+  legalBasis     String      @db.VarChar(120)
+  noticeVersion  String?     @db.VarChar(40)
+  evidenceRef    String?     @db.VarChar(255)
+  validFrom      DateTime    @db.DateTime(3)
+  validUntil     DateTime?   @db.DateTime(3)
+  revokedAt      DateTime?   @db.DateTime(3)
+  createdAt      DateTime    @default(now()) @db.DateTime(3)
+  institution    Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  student        Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  recordedBy     User        @relation("ProcessingRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@index([institutionId, studentId, purposeCode, validUntil, revokedAt])
+  @@map("data_processing_records")
+}
+
+model RetentionPolicy {
+  id             String      @id @default(uuid()) @db.Char(36)
+  institutionId  String      @db.Char(36)
+  dataCategory   String      @db.VarChar(80)
+  retentionDays  Int?
+  triggerCode    String      @db.VarChar(80)
+  approvedBy     String      @db.VarChar(160)
+  approvedAt     DateTime    @db.DateTime(3)
+  isActive       Boolean     @default(true)
+  institution    Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+
+  @@unique([institutionId, dataCategory, triggerCode])
+  @@map("retention_policies")
+}
+
+model AuditLog {
+  id             String      @id @default(uuid()) @db.Char(36)
+  institutionId  String      @db.Char(36)
+  actorId        String?     @db.Char(36)
+  studentId      String?     @db.Char(36)
+  action         String      @db.VarChar(60)
+  recordType     String      @db.VarChar(100)
+  recordId       String?     @db.VarChar(64)
+  requestId      String?     @db.VarChar(80)
+  occurredAt     DateTime    @default(now()) @db.DateTime(3)
+  institution    Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  actor          User?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  student        Student?    @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  @@index([institutionId, occurredAt])
+  @@index([institutionId, studentId, occurredAt])
+  @@index([actorId, occurredAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id             String      @id @default(uuid()) @db.Char(36)
+  institutionId  String      @db.Char(36)
+  userId         String      @db.Char(36)
+  title          String      @db.VarChar(180)
+  body           String?     @db.VarChar(500)
+  readAt         DateTime?   @db.DateTime(3)
+  createdAt      DateTime    @default(now()) @db.DateTime(3)
+  institution    Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@map("notifications")
+}
