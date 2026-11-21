@@ -1,116 +1,129 @@
-# TEN QADAM
+# TEN QADAM — Цифровая платформа сопровождения инклюзивного образования в колледже
 
-Pilot application for one college, structured so more institutions can be added later. The attached proposal and project document drive the modules and role model. Festival submission instructions are not product requirements. The pedagogical idea describes a proposed model, not validated product outcomes.
+**TEN QADAM** — это единая веб-платформа для координации психолого-педагогического сопровождения студентов с особыми образовательными потребностями (ООП) в организациях технического и профессионального образования (ТиПО). Проект разработан для **Талдыкорганского высшего политехнического колледжа** (*Талдықорған жоғары политехникалық колледжі*).
 
-## Stack
+Главная цель проекта — уйти от разрозненных бумажных папок и таблиц и собрать работу всех специалистов колледжа (дефектолога, предметных преподавателей, педагога-психолога и социального педагога) в одно удобное цифровое пространство вокруг конкретных учебных целей студента.
 
-- Web: React 19, TypeScript, Vite, MUI, Recharts.
-- API: NestJS 11 on Node.js 24 LTS, REST under `/api/v1`, OpenAPI at `/api/v1/docs`.
-- Database: MySQL 8.4 LTS, Prisma ORM 7, migrations in `apps/api/prisma/migrations`.
-- Local services: Docker Compose MySQL and optional MinIO.
-- Production: host application, database, object storage, and backups in a Kazakhstan cloud/IDC. Configure a private, encrypted endpoint in Kazakhstan before processing real personal data.
+---
 
-The source screenshot supplies the TEN QADAM brand crop, student illustration, and demo avatar under `apps/web/public/assets`. The dashboard recreates the 1600×900 arrangement and adapts for narrower screens. Kazakh is the default UI language; Russian is available from the header.
+## Как устроена логика работы (Педагогический цикл)
 
-## Start locally (PowerShell)
+Вся работа в системе строится вокруг замкнутого педагогического цикла:
 
-Requirements: Node 24, npm, Docker Desktop. From this directory:
+1. **Постановка учебной цели и профиль потребностей**  
+   Дефектолог добавляет студента в базу, описывает его образовательные потребности (педагогические, психологические, социальные — **без сбора и хранения медицинских диагнозов**) и формулирует индивидуальную учебную цель по конкретному предмету (например, *«Распознавание условных обозначений электрических схем»* на уроке электротехники).
+2. **Первичная оценка (`Бастапқы бағалау`) и наблюдение на занятии**  
+   Предметный преподаватель фиксирует в системе трудности, с которыми студент столкнулся на практике, и выставляет первичную оценку по 4 критериям: **Понимание (`Түсіну`)**, **Выполнение (`Орындау`)**, **Самостоятельность (`Дербестік`)** и **Участие (`Қатысу`)**.
+3. **Рекомендация специалиста (`Маман ұсынымы`)**  
+   Дефектолог (а также психолог или социальный педагог в рамках своей компетенции) видит наблюдение преподавателя и пишет конкретную рекомендацию по адаптации задания — например, разделить практическую работу на 3 небольших шага и выдать студенту укрупнённые карточки с условными обозначениями.
+4. **Применение на уроке (`Сабақта қолдану`)**  
+   Преподаватель берёт готовый шаблон или инструкцию из методического фонда платформы, проводит адаптированное занятие и отмечает в карточке студента результат применения рекомендации.
+5. **Повторная оценка и мониторинг динамики (`Қайта бағалау`)**  
+   После применения адаптированного материала преподаватель проводит повторную оценку по той же учебной цели и тем же 4 критериям. Платформа автоматически строит сравнительную диаграмму («Первичная оценка» vs «Повторная оценка») и считает прирост в процентных пунктах.
 
-```powershell
-Copy-Item .env.example .env
-Copy-Item apps/api/.env.example apps/api/.env
-Copy-Item apps/web/.env.development.example apps/web/.env.development
-# Development-only credentials are in the API example; replace them before shared deployment.
-docker compose up -d mysql
-npm install
-npm run db:generate
-npm run db:migrate
-npm run db:seed
-npm run dev
-```
+---
 
-Web runs on `http://localhost:5173`, API on `http://localhost:3001/api/v1`, Swagger on `http://localhost:3001/api/v1/docs`. The development seed inserts fictional accounts with the local-only credentials listed at the end of this file. Production seed requires BOOTSTRAP_ADMIN_PASSWORD explicitly and does not insert sample students.
+## Роли пользователей и разграничение доступа
 
-The default browser configuration signs in against the API and reads the dashboard aggregates from MySQL. Set `VITE_DEMO_MODE=true` only for a browser-only UI preview. Never enter real student data in demo mode. Production builds always use login. Sample student data and fixed role credentials are created only with NODE_ENV=development.
+В системе реализован строгий ролевой доступ (RBAC). Каждый сотрудник входит под своим личным логином и видит только те вкладки и только тех студентов, которые относятся к его работе. Вкладки, к которым у роли нет доступа, автоматически скрываются из навигации и блокируются на уровне API.
 
-## Modules
+### 1. Администрация (`Әкімшілік`)
+* **Задача**: управление учётными записями сотрудников, учебными группами и предметами, а также общий мониторинг инклюзивного образования по колледжу.
+* **Что доступно**:
+  - Создание пользователей, назначение и смена ролей (*Дефектолог, Преподаватель, Психолог, Социальный педагог, Администрация*), блокировка/разблокировка аккаунтов и сброс паролей.
+  - Добавление новых учебных групп, специальностей и учебных дисциплин колледжа.
+  - Загрузка и удаление нормативных документов (законы РК, приказы, внутренние положения колледжа).
+  - Просмотр **обезличенной сводной статистики** по колледжу и выгрузка сводных отчётов в CSV.
+* **Ограничения**: администрации **запрещён** доступ к персональным карточкам студентов, консилиум-чатам и приватным записям специалистов.
 
-The first implementation target from the screenshot is the dashboard page (the panel below the presentation heading at the upper left). The presentation heading and the student-profile, collaboration, and metrics panels are reference-board annotations/other page examples and are not rendered on the home page. The sidebar retains the planned sections; those pages are being implemented incrementally. Planned areas: dashboard; normative documents; student records; teacher guides; learning indicators; individual support plans; specialist collaboration; methodical library and reports. The student workflow is observation → recommendation → application in class → reassessment → support plan update. API CRUD is provided for core student, assignment, observation, recommendation, application, assessment, plan/action, collaboration, library metadata and user workflows.
+### 2. Дефектолог (`Дефектолог`)
+* **Задача**: координация сопровождения студентов, постановка индивидуальных учебных целей и методическая поддержка преподавателей.
+* **Что доступно**:
+  - Добавление студентов и учебных групп в базу.
+  - Назначение студенту команды сопровождения (прикрепление предметных преподавателей по конкретным дисциплинам, психолога и социального педагога).
+  - Ведение профиля образовательных потребностей, создание учебных целей, написание рекомендаций по адаптации заданий.
+  - Внесение оценок по критериям, участие в консилиум-чате, загрузка и удаление документов, шаблонов и инструкций.
 
-Current UI and API distinction: some forms are wired to the API (login, student creation, plans status, messages, reports export). Observation, recommendation, assessment, plan/action creation, file upload and private-note editing are represented in API services where implemented or remain next integration work; their UI forms are not yet fully delivered. Library currently exposes metadata; secure object upload/download is a production follow-up. Do not treat demo figures as pilot results.
+### 3. Предметный преподаватель (`Пән оқытушысы`)
+* **Задача**: проведение адаптированных занятий, фиксация педагогических наблюдений и оценка достижения учебных целей по своему предмету.
+* **Что доступно**:
+  - Просмотр карточек **только назначенных ему студентов** и только по своим предметам.
+  - Добавление педагогических наблюдений с занятий.
+  - Отметка о применении рекомендаций специалистов на уроке с описанием результата.
+  - Проведение первичной и повторной оценки студента по 4 критериям.
+  - Чтение и скачивание инструкций по адаптации уроков, чек-листов и шаблонов заданий во встроенном просмотрщике PDF, загрузка собственных методических материалов.
 
-## Roles and access
+### 4. Педагог-психолог (`Педагог-психолог`)
+* **Задача**: психологическая поддержка студентов, снижение тревожности, развитие учебной мотивации.
+* **Что доступно**:
+  - Заполнение психологического профиля поддержки у назначенных студентов.
+  - Написание психологических рекомендаций и общение со специалистами в консилиум-чате.
+  - **Закрытая вкладка «Приватные заметки» (`Құпия жазбалар`)**: ведение конфиденциальных записей индивидуальных консультаций, которые видны **только самому психологу** (скрыты от преподавателей, дефектолога, соц. педагога и администрации).
 
-| Role | Scope |
-| --- | --- |
-| Defectologist | Assigned student profiles, goals, recommendations, monitoring, support plan and assignments; may create students and assign specialists. |
-| Subject teacher | Students and subjects assigned to them; observations, adapted material, assessment and recording applied recommendations. |
-| Pedagogical psychologist | Assigned students; psychological support actions and private notes restricted to the author or explicit access list. |
-| Social pedagogue | Assigned students; social support actions and necessary reporting. |
-| Administration | User/configuration management and institution-wide aggregates; no personal student-card access. |
+### 5. Социальный педагог (`Әлеуметтік педагог`)
+* **Задача**: социальная адаптация студента в колледже, координация расписания и социально-педагогическая поддержка.
+* **Что доступно**:
+  - Ведение социального профиля поддержки назначенных студентов.
+  - Добавление рекомендаций, участие в консилиум-чате специалистов и выгрузка мониторинговых отчётов.
 
-Accounts are individual. Roles and student/subject assignments are checked server-side. API data is institution-scoped, the administrator is denied student-level endpoints, and successful authenticated API mutations are written to `audit_logs`. Add review and monitoring for denied requests, login events, exports, and emergency access before production.
+---
 
-## Data model
+## Учётные записи для входа (Логины и пароли)
 
-The Prisma schema and SQL migration are the source of truth. Institution-scoped entities include:
+При первом запуске (или выполнении `npm run db:seed`) в базе создаются готовые аккаунты для проверки всех 5 ролей:
 
-- Organization: institutions, users, roles, user_roles, user_sessions, user_student_assignments.
-- Study: students, study_groups, specialties, subjects, student_support_profiles.
-- Teaching cycle: learning_goals, observations, recommendations, recommendation_applications, assessment_sessions, assessment_results.
-- Support: support_plans, support_plan_actions, specialist_private_notes, private_note_access.
-- Collaboration: collaboration_threads, thread_members, messages.
-- Resources and privacy: library_items, library_files, data_processing_records, retention_policies, audit_logs, notifications.
+| Роль | ФИО в системе | Логин | Пароль |
+| :--- | :--- | :--- | :--- |
+| **Администрация** | Администратор учреждения | `admin` | `TenQadamAdmin2026!` |
+| **Дефектолог** | Оспанова М.Қ. | `demo-defectologist` | `Defectolog2026!!` |
+| **Предметный преподаватель** | Айдарова А.С. | `demo-teacher` | `Teacher2026Pass!` |
+| **Педагог-психолог** | Нұрғалиева Д.Т. | `demo-psychologist` | `Psychologist2026!` |
+| **Социальный педагог** | Қасымова Г.Е. | `demo-social` | `SocialPed2026Pass!` |
 
-Student links to goals, assessments and plans; goals link to subject, observations, recommendations and assessment sessions; a session contains criterion-level results; actions connect responsible specialists and optional goals. Private psychologist notes use a separate access list. Dashboard values derive from recorded assessments and plan actions. Diagnoses and medical records are not collected by default.
+---
 
-Before production pilot, the college must approve the role matrix, lawful processing basis/notice or consent, minimum field set, retention/deletion schedule and incident process. Development/acceptance data is synthetic. Production personal data must be stored in Kazakhstan, with encrypted transport, access-controlled storage, tested backups, and a restore exercise.
+## Основные разделы платформы (Вкладки)
 
-## Schema map
+1. **Главная (`Басты бет`)** — ключевые показатели (количество студентов на сопровождении, активные планы, выполнение мероприятий и прирост учебной динамики), лента последних обновлений и ближайшие события.
+2. **Пользователи и роли (`Пайдаланушылар мен рөлдер`)** *(только для Администрации)* — управление сотрудниками, назначение ролей, справочники учебных групп и предметов.
+3. **Нормативные документы (`Нормативтік құжаттар`)** — законы, правила инклюзивного образования, приказы и внутренние положения колледжа с поиском, загрузкой, удалением и встроенным просмотром PDF-документов прямо в браузере.
+4. **База студентов (`Студенттер базасы`)** — список назначенных студентов и подробная карточка студента (Общая информация, Учебные цели, Педагогические наблюдения, Рекомендации специалистов и отметки об их применении, Приватные заметки психолога).
+5. **Инструкции педагогам (`Педагогтерге нұсқаулық`)** — практические руководства по делению заданий на этапы, визуальным опорам и альтернативному оцениванию (с PDF-файлами).
+6. **Учебные показатели (`Білім көрсеткіштері`)** — интерактивные графики сравнения первичной и повторной оценки достижения учебных целей по 4 критериям.
+7. **Связь специалистов (`Мамандар байланысы`)** — общий консилиум-чат специалистов по каждому студенту с поддержкой нескольких тем обсуждения.
+8. **Методическая база (`Әдістемелік қор`)** — банк адаптированных заданий, шаблонов укрупнённых карточек и чек-листов с возможностью загрузки и просмотра PDF/DOCX/изображений.
+9. **Документы и отчёты (`Құжаттар және есептер`)** — обезличенные сводные индикаторы эффективности сопровождения и выгрузка отчётов в формате CSV.
 
-```mermaid
-erDiagram
-  INSTITUTIONS ||--o{ USERS : has
-  INSTITUTIONS ||--o{ STUDENTS : has
-  INSTITUTIONS ||--o{ STUDY_GROUPS : has
-  USERS ||--o{ USER_STUDENT_ASSIGNMENTS : assigned
-  STUDENTS ||--o{ USER_STUDENT_ASSIGNMENTS : assigned
-  STUDENTS ||--o{ LEARNING_GOALS : has
-  LEARNING_GOALS ||--o{ OBSERVATIONS : tracked
-  LEARNING_GOALS ||--o{ RECOMMENDATIONS : informs
-  RECOMMENDATIONS ||--o{ RECOMMENDATION_APPLICATIONS : applied
-  LEARNING_GOALS ||--o{ ASSESSMENT_SESSIONS : assessed
-  ASSESSMENT_SESSIONS ||--o{ ASSESSMENT_RESULTS : contains
-  STUDENTS ||--o{ SUPPORT_PLANS : supported
-  SUPPORT_PLANS ||--o{ SUPPORT_PLAN_ACTIONS : contains
-  STUDENTS ||--o{ SPECIALIST_PRIVATE_NOTES : has
-  SPECIALIST_PRIVATE_NOTES ||--o{ PRIVATE_NOTE_ACCESS : grants
-  COLLABORATION_THREADS ||--o{ MESSAGES : contains
-  LIBRARY_ITEMS ||--o{ LIBRARY_FILES : contains
-```
+Интерфейс полностью двуязычный (**ҚАЗ / РУС**) и адаптирован как для широкоформатных мониторов, так и для планшетов и смартфонов (с выезжающим мобильным меню).
 
-## Pilot gates
+---
 
-1. Approve data processing purposes, legal basis, access matrix, minimum fields and retention policy.
-2. Set up environments, migration/backup/restore, accounts, session security and audit monitoring.
-3. Complete the core pedagogical workflow and secure document storage.
-4. Compare the 1600×900 dashboard to the supplied screenshot; review keyboard/mobile behavior and both languages.
-5. Load approved pilot records only after sign-off; assess goal completion, recommendation application, event timeliness, adapted-work outcomes, and staff feedback.
+## Технологический стек
 
-Acceptance includes the full workflow; teacher access limited to assigned students/subjects; private notes restricted; administrators see aggregates only; both languages work; actions are audited; and a backup is restored successfully. Storage retention periods are set by the college before real data is loaded.
+- **Frontend**: React 19, TypeScript, Vite, Material UI (MUI), шрифты Noto Sans & Rubik (полная поддержка казахского алфавита).
+- **Backend**: NestJS 11 (Node.js), REST API (`/api/v1`), Swagger-документация (`/api/v1/docs`), сессионная авторизация на HttpOnly Cookies и хеширование паролей Argon2id.
+- **База данных**: MySQL 8.4, Prisma ORM 7. Полный дамп базы данных сохранён в корне репозитория в файле `tenqadam_dump.sql`.
 
+---
 
+## Как запустить проект локально
 
-### Local development logins
-
-These fictional accounts are inserted only when `NODE_ENV=development`. They use a sample student and must not be reused for a shared environment.
-
-| Role | Login | Password |
-| --- | --- | --- |
-| Administration | admin | TenQadamAdmin2026! |
-| Defectologist | demo-defectologist | Defectolog2026!! |
-| Subject teacher | demo-teacher | Teacher2026Pass! |
-| Pedagogical psychologist | demo-psychologist | Psychologist2026! |
-| Social pedagogue | demo-social | SocialPed2026Pass! |
-
-
+1. Убедитесь, что у вас установлены **Node.js (v24+)** и **Docker** (либо локальный сервер MySQL).
+2. Запустите контейнер с базой данных MySQL (на порту `3307`):
+   ```powershell
+   docker compose up -d mysql
+   ```
+3. Установите зависимости, примените миграции и заполните базу начальными данными:
+   ```powershell
+   npm install
+   npm run db:generate
+   npm run db:migrate
+   npm run db:seed
+   ```
+4. Запустите фронтенд и бэкенд одновременно:
+   ```powershell
+   npm run dev
+   ```
+5. Откройте в браузере:
+   - Веб-приложение: `http://localhost:5173`
+   - Документация API (Swagger): `http://localhost:3001/api/v1/docs`
