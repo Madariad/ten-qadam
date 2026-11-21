@@ -1096,7 +1096,7 @@ function InstitutionBar({ language, setLanguage, role, setRole, t, demoMode, use
           <MenuRounded />
         </IconButton>
         <div className="institution-icon"><SchoolRounded /></div>
-        <span>{language === 'kk' ? 'Жетісу политехникалық колледжі' : 'Жетысуский политехнический колледж'}</span>
+        <span>{language === 'kk' ? 'Талдықорған жоғары политехникалық колледжі' : 'Талдыкорганский высший политехнический колледж'}</span>
       </div>
       <div className="user-controls">
         <div className="language-toggle app-language-toggle" aria-label={t.language}>
@@ -1219,8 +1219,8 @@ function DashboardOverview({ language, role, setActiveSection, t, demoMode, summ
             </>
           )}
           {role !== 'admin' ? (
-            <button className="text-link" onClick={() => setActiveSection('plans')}>
-              {language === 'kk' ? 'Жоспарды ашу' : 'Открыть план'} <ArrowForwardRounded />
+            <button className="text-link" onClick={() => setActiveSection('students')}>
+              {language === 'kk' ? 'Студенттер базасын ашу' : 'Открыть базу студентов'} <ArrowForwardRounded />
             </button>
           ) : (
             <button className="text-link" onClick={() => setActiveSection('users')}>

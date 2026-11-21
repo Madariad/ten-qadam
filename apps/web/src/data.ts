@@ -16,17 +16,16 @@ export const navigation: { key: SectionKey; label: string; icon: string }[] = [
   { key: 'students', label: 'students', icon: 'groups' },
   { key: 'guides', label: 'guides', icon: 'menu_book' },
   { key: 'metrics', label: 'metrics', icon: 'bar_chart' },
-  { key: 'plans', label: 'plans', icon: 'event_note' },
   { key: 'collaboration', label: 'collaboration', icon: 'hub' },
   { key: 'library', label: 'library', icon: 'school' },
   { key: 'reports', label: 'reports', icon: 'description' },
 ];
 
 export const permissions: Record<Role, SectionKey[]> = {
-  defectologist: ['home', 'normative', 'students', 'guides', 'metrics', 'plans', 'collaboration', 'library', 'reports'],
-  teacher: ['home', 'normative', 'students', 'guides', 'metrics', 'plans', 'collaboration', 'library', 'reports'],
-  psychologist: ['home', 'normative', 'students', 'metrics', 'plans', 'collaboration', 'library', 'reports'],
-  social: ['home', 'normative', 'students', 'metrics', 'plans', 'collaboration', 'library', 'reports'],
+  defectologist: ['home', 'normative', 'students', 'guides', 'metrics', 'collaboration', 'library', 'reports'],
+  teacher: ['home', 'normative', 'students', 'guides', 'metrics', 'collaboration', 'library', 'reports'],
+  psychologist: ['home', 'normative', 'students', 'metrics', 'collaboration', 'library', 'reports'],
+  social: ['home', 'normative', 'students', 'metrics', 'collaboration', 'library', 'reports'],
   admin: ['home', 'users', 'normative', 'guides', 'metrics', 'library', 'reports'],
 };
 

@@ -79,8 +79,8 @@ async function main() {
   const institutionCode = process.env.BOOTSTRAP_INSTITUTION_CODE ?? 'ZPC-01';
   const institution = await prisma.institution.upsert({
     where: { code: institutionCode },
-    update: { name: process.env.BOOTSTRAP_INSTITUTION_NAME ?? 'Жетісу политехникалық колледжі' },
-    create: { code: institutionCode, name: process.env.BOOTSTRAP_INSTITUTION_NAME ?? 'Жетісу политехникалық колледжі', timezone: 'Asia/Almaty' },
+    update: { name: process.env.BOOTSTRAP_INSTITUTION_NAME ?? 'Талдықорған жоғары политехникалық колледжі' },
+    create: { code: institutionCode, name: process.env.BOOTSTRAP_INSTITUTION_NAME ?? 'Талдықорған жоғары политехникалық колледжі', timezone: 'Asia/Almaty' },
   });
 
   const adminLogin = process.env.BOOTSTRAP_ADMIN_LOGIN ?? 'admin';
