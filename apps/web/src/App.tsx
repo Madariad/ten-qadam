@@ -46,6 +46,8 @@ import UploadFileRounded from '@mui/icons-material/UploadFileRounded';
 import VisibilityRounded from '@mui/icons-material/VisibilityRounded';
 import RefreshRounded from '@mui/icons-material/RefreshRounded';
 import ManageAccountsRounded from '@mui/icons-material/ManageAccountsRounded';
+import MenuRounded from '@mui/icons-material/MenuRounded';
+import CloseRounded from '@mui/icons-material/CloseRounded';
 import { copy, type Language } from './i18n';
 import {
   apiRequest,
@@ -406,6 +408,7 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
   const [adminUsers, setAdminUsers] = useState<ApiAdminUser[]>([]);
   const [toast, setToast] = useState('');
   const [refreshTick, setRefreshTick] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const t = copy[language];
 
   const triggerRefresh = () => setRefreshTick((v) => v + 1);
@@ -824,9 +827,14 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
           <Sidebar
             language={language}
             activeSection={activeSection}
-            setActiveSection={setActiveSection}
+            setActiveSection={(sec) => {
+              setActiveSection(sec);
+              setMobileMenuOpen(false);
+            }}
             canOpen={canOpen}
             onDenied={() => setToast(t.noAccess)}
+            mobileOpen={mobileMenuOpen}
+            onCloseMobile={() => setMobileMenuOpen(false)}
             t={t}
           />
           {activeSection === 'home' ? (
@@ -840,6 +848,7 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
                 demoMode={demoMode}
                 userName={authenticatedUser?.displayName}
                 onLogout={onLogout}
+                onOpenMobileMenu={() => setMobileMenuOpen(true)}
               />
               <DashboardOverview
                 language={language}
@@ -861,6 +870,7 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
                 demoMode={demoMode}
                 userName={authenticatedUser?.displayName}
                 onLogout={onLogout}
+                onOpenMobileMenu={() => setMobileMenuOpen(true)}
               />
               {canOpen(activeSection) ? (
                 <SectionContent
@@ -1016,44 +1026,54 @@ function BrandHeader({ language, setLanguage, t }: { language: Language; setLang
   );
 }
 
-function Sidebar({ language, activeSection, setActiveSection, canOpen, t }: {
+function Sidebar({ language, activeSection, setActiveSection, canOpen, mobileOpen, onCloseMobile, t }: {
   language: Language;
   activeSection: SectionKey;
   setActiveSection: (key: SectionKey) => void;
   canOpen: (key: SectionKey) => boolean;
   onDenied?: () => void;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
   t: typeof copy.kk;
 }) {
   const visibleItems = navigation.filter((item) => canOpen(item.key));
   return (
-    <aside className="sidebar">
-      <div className="sidebar-brand"><img src="/assets/ten-qadam-logo.png" alt="TEN QADAM" /></div>
-      <nav aria-label={language === 'kk' ? 'Негізгі мәзір' : 'Главное меню'}>
-        {visibleItems.map((item) => {
-          const Icon = iconMap[item.icon];
-          return (
-            <button
-              key={item.key}
-              type="button"
-              className={`nav-item ${activeSection === item.key ? 'active' : ''}`}
-              onClick={() => setActiveSection(item.key)}
-              aria-current={activeSection === item.key ? 'page' : undefined}
-            >
-              <Icon fontSize="small" />
-              <span>{t[item.label as keyof typeof t]}</span>
-            </button>
-          );
-        })}
-      </nav>
-      <div className="sidebar-footer">
-        <span className="online-dot" />
-        <span>{language === 'kk' ? 'Қауіпсіз жұмыс кеңістігі' : 'Защищённое рабочее пространство'}</span>
-      </div>
-    </aside>
+    <>
+      {mobileOpen && <div className="sidebar-backdrop" onClick={onCloseMobile} aria-hidden="true" />}
+      <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
+        <div className="sidebar-brand">
+          <img src="/assets/ten-qadam-logo.png" alt="TEN QADAM" />
+          <IconButton className="sidebar-close-btn" onClick={onCloseMobile} aria-label="Close menu">
+            <CloseRounded />
+          </IconButton>
+        </div>
+        <nav aria-label={language === 'kk' ? 'Негізгі мәзір' : 'Главное меню'}>
+          {visibleItems.map((item) => {
+            const Icon = iconMap[item.icon];
+            return (
+              <button
+                key={item.key}
+                type="button"
+                className={`nav-item ${activeSection === item.key ? 'active' : ''}`}
+                onClick={() => setActiveSection(item.key)}
+                aria-current={activeSection === item.key ? 'page' : undefined}
+              >
+                <Icon fontSize="small" />
+                <span>{t[item.label as keyof typeof t]}</span>
+              </button>
+            );
+          })}
+        </nav>
+        <div className="sidebar-footer">
+          <span className="online-dot" />
+          <span>{language === 'kk' ? 'Қауіпсіз жұмыс кеңістігі' : 'Защищённое рабочее пространство'}</span>
+        </div>
+      </aside>
+    </>
   );
 }
 
-function InstitutionBar({ language, setLanguage, role, setRole, t, demoMode, userName, onLogout }: {
+function InstitutionBar({ language, setLanguage, role, setRole, t, demoMode, userName, onLogout, onOpenMobileMenu }: {
   language: Language;
   setLanguage: (value: Language) => void;
   role: Role;
@@ -1062,10 +1082,14 @@ function InstitutionBar({ language, setLanguage, role, setRole, t, demoMode, use
   demoMode: boolean;
   userName?: string;
   onLogout: () => void;
+  onOpenMobileMenu?: () => void;
 }) {
   return (
     <div className="institution-bar">
       <div className="institution-name">
+        <IconButton className="mobile-menu-trigger" onClick={onOpenMobileMenu} aria-label="Menu">
+          <MenuRounded />
+        </IconButton>
         <div className="institution-icon"><SchoolRounded /></div>
         <span>{language === 'kk' ? 'Жетісу политехникалық колледжі' : 'Жетысуский политехнический колледж'}</span>
       </div>
@@ -2330,7 +2354,15 @@ function SectionContent({
                       <td>{row.group}</td>
                       <td>{row.specialty}</td>
                       <td>
-                        <Button size="small" variant={selectedStudentId === row.id ? 'contained' : 'outlined'} onClick={() => onSelectStudent(row.id)}>
+                        <Button
+                          size="small"
+                          variant={selectedStudentId === row.id ? 'contained' : 'outlined'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectStudent(row.id);
+                            document.getElementById('student-profile-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }}
+                        >
                           {t.open}
                         </Button>
                       </td>
@@ -2343,7 +2375,7 @@ function SectionContent({
           </div>
 
           {/* Right Panel: Detailed Student Profile & Pedagogical Cycle */}
-          <Paper className="profile-panel" elevation={0}>
+          <Paper id="student-profile-card" className="profile-panel" elevation={0}>
             {studentInfo ? (
               <>
                 <div className="student-card-header">
