@@ -25,3 +25,17 @@ export class CreateLearningGoalDto {
   @IsString() @Length(3, 4000) successCriteria!: string;
   @IsOptional() @IsDateString() targetDate?: string;
 }
+
+export class CreateStudyGroupDto {
+  @IsString() @Length(2, 32) code!: string;
+  @IsOptional() @IsString() @Length(4, 16) academicYear?: string;
+  @IsOptional() @IsString() @Length(2, 32) specialtyCode?: string;
+  @IsString() @Length(2, 160) specialtyNameKk!: string;
+  @IsOptional() @IsString() @Length(2, 160) specialtyNameRu?: string;
+}
+
+export class CreateSubjectDto {
+  @IsString() @Length(2, 32) code!: string;
+  @IsString() @Length(2, 160) nameKk!: string;
+  @IsOptional() @IsString() @Length(2, 160) nameRu?: string;
+}

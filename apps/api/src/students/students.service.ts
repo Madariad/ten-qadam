@@ -1,8 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { AuthContext } from '../common/auth-context.js';
 import { AccessService } from '../common/access.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { CreateAssignmentDto, CreateLearningGoalDto, CreateStudentDto, CreateSupportProfileDto } from './students.dto.js';
+import type { CreateAssignmentDto, CreateLearningGoalDto, CreateStudentDto, CreateStudyGroupDto, CreateSubjectDto, CreateSupportProfileDto } from './students.dto.js';
 
 @Injectable()
 export class StudentsService {
@@ -25,13 +25,56 @@ export class StudentsService {
   }
 
   async groups(user: AuthContext) {
-    this.access.requireAnyRole(user, ['DEFECTOLOGIST']);
-    return this.prisma.studyGroup.findMany({ where: { institutionId: user.institutionId }, select: { id: true, code: true, specialty: { select: { nameKk: true, nameRu: true } } }, orderBy: { code: 'asc' } });
+    this.access.requireAnyRole(user, ['DEFECTOLOGIST', 'ADMINISTRATOR', 'SUBJECT_TEACHER', 'PSYCHOLOGIST', 'SOCIAL_PEDAGOG']);
+    return this.prisma.studyGroup.findMany({ where: { institutionId: user.institutionId }, select: { id: true, code: true, academicYear: true, specialty: { select: { id: true, code: true, nameKk: true, nameRu: true } } }, orderBy: { code: 'asc' } });
+  }
+
+  async createGroup(user: AuthContext, body: CreateStudyGroupDto) {
+    this.access.requireAnyRole(user, ['DEFECTOLOGIST', 'ADMINISTRATOR']);
+    const code = body.code.trim().toUpperCase();
+    const academicYear = (body.academicYear ?? '2026-2027').trim();
+    const specNameKk = body.specialtyNameKk.trim();
+    const specNameRu = (body.specialtyNameRu ?? body.specialtyNameKk).trim();
+    const specCode = (body.specialtyCode?.trim() || specNameKk.slice(0, 12).toUpperCase().replace(/\s+/g, '-')).slice(0, 32);
+
+    const existing = await this.prisma.studyGroup.findFirst({
+      where: { institutionId: user.institutionId, code, academicYear },
+    });
+    if (existing) throw new ConflictException('Учебная группа с таким кодом уже существует');
+
+    const specialty = await this.prisma.specialty.upsert({
+      where: { institutionId_code: { institutionId: user.institutionId, code: specCode } },
+      update: { nameKk: specNameKk, nameRu: specNameRu },
+      create: { institutionId: user.institutionId, code: specCode, nameKk: specNameKk, nameRu: specNameRu },
+    });
+
+    return this.prisma.studyGroup.create({
+      data: {
+        institutionId: user.institutionId,
+        specialtyId: specialty.id,
+        code,
+        academicYear,
+      },
+      select: { id: true, code: true, academicYear: true, specialty: { select: { id: true, code: true, nameKk: true, nameRu: true } } },
+    });
   }
 
   async subjects(user: AuthContext) {
-    this.access.requireAnyRole(user, ['DEFECTOLOGIST', 'SUBJECT_TEACHER', 'PSYCHOLOGIST', 'SOCIAL_PEDAGOG']);
+    this.access.requireAnyRole(user, ['DEFECTOLOGIST', 'ADMINISTRATOR', 'SUBJECT_TEACHER', 'PSYCHOLOGIST', 'SOCIAL_PEDAGOG']);
     return this.prisma.subject.findMany({ where: { institutionId: user.institutionId }, select: { id: true, code: true, nameKk: true, nameRu: true }, orderBy: { nameKk: 'asc' } });
+  }
+
+  async createSubject(user: AuthContext, body: CreateSubjectDto) {
+    this.access.requireAnyRole(user, ['DEFECTOLOGIST', 'ADMINISTRATOR']);
+    const code = body.code.trim().toUpperCase();
+    const nameKk = body.nameKk.trim();
+    const nameRu = (body.nameRu ?? body.nameKk).trim();
+    return this.prisma.subject.upsert({
+      where: { institutionId_code: { institutionId: user.institutionId, code } },
+      update: { nameKk, nameRu },
+      create: { institutionId: user.institutionId, code, nameKk, nameRu },
+      select: { id: true, code: true, nameKk: true, nameRu: true },
+    });
   }
 
   async specialists(user: AuthContext) {

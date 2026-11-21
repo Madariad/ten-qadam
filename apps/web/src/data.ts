@@ -25,14 +25,14 @@ export const navigation: { key: SectionKey; label: string; icon: string }[] = [
 export const permissions: Record<Role, SectionKey[]> = {
   defectologist: ['home', 'normative', 'students', 'guides', 'metrics', 'plans', 'collaboration', 'library', 'reports'],
   teacher: ['home', 'normative', 'students', 'guides', 'metrics', 'plans', 'collaboration', 'library', 'reports'],
-  psychologist: ['home', 'normative', 'students', 'plans', 'collaboration', 'library', 'reports'],
-  social: ['home', 'normative', 'students', 'plans', 'collaboration', 'library', 'reports'],
-  admin: ['home', 'users', 'normative', 'guides', 'metrics', 'reports'],
+  psychologist: ['home', 'normative', 'students', 'metrics', 'plans', 'collaboration', 'library', 'reports'],
+  social: ['home', 'normative', 'students', 'metrics', 'plans', 'collaboration', 'library', 'reports'],
+  admin: ['home', 'users', 'normative', 'guides', 'metrics', 'library', 'reports'],
 };
 
 export const student = {
   name: 'Серік Әлихан',
-  code: 'ДЕМО-ЭС-24-01',
+  code: 'ЭС-24-01',
   group: '3С-24',
   specialty: 'Электрмен жабдықтау',
   needs: 'Оқу материалын визуалды қолдаумен ұсыну, тапсырманы кезеңдерге бөлу',

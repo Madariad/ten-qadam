@@ -130,20 +130,28 @@ async function main() {
 
   const demoStudent = await prisma.student.upsert({
     where: { institutionId_studentCode: { institutionId: institution.id, studentCode: 'DEMO-ЭС-24-01' } },
+    update: { fullName: 'Серік Әлихан', groupId: group.id, status: 'ACTIVE', studentCode: 'ЭС-24-01' },
+    create: { institutionId: institution.id, studentCode: 'ЭС-24-01', fullName: 'Серік Әлихан', groupId: group.id },
+  }).catch(() => prisma.student.upsert({
+    where: { institutionId_studentCode: { institutionId: institution.id, studentCode: 'ЭС-24-01' } },
     update: { fullName: 'Серік Әлихан', groupId: group.id, status: 'ACTIVE' },
-    create: { institutionId: institution.id, studentCode: 'DEMO-ЭС-24-01', fullName: 'Серік Әлихан', groupId: group.id },
-  });
+    create: { institutionId: institution.id, studentCode: 'ЭС-24-01', fullName: 'Серік Әлихан', groupId: group.id },
+  }));
   const demoStudent2 = await prisma.student.upsert({
     where: { institutionId_studentCode: { institutionId: institution.id, studentCode: 'DEMO-ТП-24-02' } },
+    update: { fullName: 'Айдана Марат', groupId: group2.id, status: 'ACTIVE', studentCode: 'ТП-24-02' },
+    create: { institutionId: institution.id, studentCode: 'ТП-24-02', fullName: 'Айдана Марат', groupId: group2.id },
+  }).catch(() => prisma.student.upsert({
+    where: { institutionId_studentCode: { institutionId: institution.id, studentCode: 'ТП-24-02' } },
     update: { fullName: 'Айдана Марат', groupId: group2.id, status: 'ACTIVE' },
-    create: { institutionId: institution.id, studentCode: 'DEMO-ТП-24-02', fullName: 'Айдана Марат', groupId: group2.id },
-  });
+    create: { institutionId: institution.id, studentCode: 'ТП-24-02', fullName: 'Айдана Марат', groupId: group2.id },
+  }));
 
   const demoAccounts = [
-    { login: 'demo-defectologist', name: 'Демо · Дефектолог', role: 'DEFECTOLOGIST' as const, password: 'Defectolog2026!!' },
-    { login: 'demo-teacher', name: 'Демо · Предметный преподаватель', role: 'SUBJECT_TEACHER' as const, password: 'Teacher2026Pass!' },
-    { login: 'demo-psychologist', name: 'Демо · Педагог-психолог', role: 'PSYCHOLOGIST' as const, password: 'Psychologist2026!' },
-    { login: 'demo-social', name: 'Демо · Социальный педагог', role: 'SOCIAL_PEDAGOG' as const, password: 'SocialPed2026Pass!' },
+    { login: 'demo-defectologist', name: 'Оспанова М.Қ.', role: 'DEFECTOLOGIST' as const, password: 'Defectolog2026!!' },
+    { login: 'demo-teacher', name: 'Айдарова А.С.', role: 'SUBJECT_TEACHER' as const, password: 'Teacher2026Pass!' },
+    { login: 'demo-psychologist', name: 'Нұрғалиева Д.Т.', role: 'PSYCHOLOGIST' as const, password: 'Psychologist2026!' },
+    { login: 'demo-social', name: 'Қасымова Г.Е.', role: 'SOCIAL_PEDAGOG' as const, password: 'SocialPed2026Pass!' },
   ];
   const demoUsers = await Promise.all(demoAccounts.map((account) => getOrCreateDemoUser(institution.id, account.login, account.name, account.role, account.password)));
   for (const user of demoUsers) {
@@ -206,14 +214,18 @@ async function main() {
       });
     }
 
-    let plan = await prisma.supportPlan.findFirst({ where: { institutionId: institution.id, studentId: demoStudent.id, title: 'Қолдау жоспары · DEMO' } });
+    await prisma.supportPlan.updateMany({
+      where: { institutionId: institution.id, studentId: demoStudent.id, title: 'Қолдау жоспары · DEMO' },
+      data: { title: 'Жеке қолдау жоспары · 2026–2027' },
+    });
+    let plan = await prisma.supportPlan.findFirst({ where: { institutionId: institution.id, studentId: demoStudent.id } });
     if (!plan) {
       plan = await prisma.supportPlan.create({
         data: {
           institutionId: institution.id,
           studentId: demoStudent.id,
           createdById: defectologist.id,
-          title: 'Қолдау жоспары · DEMO',
+          title: 'Жеке қолдау жоспары · 2026–2027',
           periodStart: new Date('2026-11-01T00:00:00Z'),
           periodEnd: new Date('2026-12-31T00:00:00Z'),
         },
@@ -262,14 +274,18 @@ async function main() {
       });
     }
 
-    let thread = await prisma.collaborationThread.findFirst({ where: { institutionId: institution.id, studentId: demoStudent.id, title: 'Консилиум · DEMO' } });
+    await prisma.collaborationThread.updateMany({
+      where: { institutionId: institution.id, studentId: demoStudent.id, title: 'Консилиум · DEMO' },
+      data: { title: 'Психологиялық-педагогикалық консилиум' },
+    });
+    let thread = await prisma.collaborationThread.findFirst({ where: { institutionId: institution.id, studentId: demoStudent.id } });
     if (!thread) {
       const members = [defectologist, teacher, psychologist, social];
       thread = await prisma.collaborationThread.create({
         data: {
           institutionId: institution.id,
           studentId: demoStudent.id,
-          title: 'Консилиум · DEMO',
+          title: 'Психологиялық-педагогикалық консилиум',
           members: { create: members.map((member) => ({ userId: member.id })) },
           messages: {
             create: [

@@ -312,7 +312,7 @@ function LoginScreen({ onLogin, error }: { onLogin: (login: string, password: st
         <div className="login-mark"><img src="/assets/ten-qadam-logo.png" alt="TEN QADAM" /></div>
         <div className="eyebrow">TEN QADAM</div>
         <h1>{language === 'kk' ? 'Жүйеге кіру' : 'Вход в платформу'}</h1>
-        <p>{language === 'kk' ? 'Жеке логин мен құпиясөзді енгізіңіз немесе төмендегі рөлді таңдаңыз.' : 'Введите личный логин и пароль или выберите демо-роль ниже.'}</p>
+        <p>{language === 'kk' ? 'Жеке логин мен құпиясөзді енгізіңіз немесе төмендегі рөлді таңдаңыз.' : 'Введите личный логин и пароль или выберите роль ниже.'}</p>
         <form onSubmit={submit} className="login-form">
           <TextField label={language === 'kk' ? 'Логин' : 'Логин'} value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" required fullWidth />
           <TextField label={language === 'kk' ? 'Құпиясөз' : 'Пароль'} value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" required fullWidth />
@@ -358,11 +358,11 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
   const [planActions, setPlanActions] = useState<PlanAction[]>(demoMode ? initialPlanActions : []);
   const [query, setQuery] = useState('');
   const [studentRows, setStudentRows] = useState<StudentRecord[]>(demoMode ? [
-    { id: 'DEMO-ЭС-24-01', code: 'DEMO-ЭС-24-01', name: student.name, group: student.group, specialty: student.specialty, status: 'Қолдауда' },
-    { id: 'DEMO-ТП-24-02', code: 'DEMO-ТП-24-02', name: 'Айдана Марат', group: '2ТП-24', specialty: 'Техникалық қызмет көрсету', status: 'Қолдауда' },
+    { id: 'ЭС-24-01', code: 'ЭС-24-01', name: student.name, group: student.group, specialty: student.specialty, status: 'Қолдауда' },
+    { id: 'ТП-24-02', code: 'ТП-24-02', name: 'Айдана Марат', group: '2ТП-24', specialty: 'Техникалық қызмет көрсету', status: 'Қолдауда' },
   ] : []);
   const [studentView, setStudentView] = useState<StudentView | null>(demoMode ? {
-    id: 'DEMO-ЭС-24-01',
+    id: 'ЭС-24-01',
     ...student,
     goal: 'Шартты белгілерді тану',
     rawProfiles: [{ id: 'p1', category: 'PEDAGOGICAL', description: student.needs }],
@@ -370,10 +370,10 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
     observations: [],
     recommendations: [],
     assignments: [],
-    activePlanId: 'plan-demo',
-    activePlanTitle: 'Қолдау жоспары · DEMO',
+    activePlanId: 'plan-1',
+    activePlanTitle: 'Жеке қолдау жоспары · 2026–2027',
   } : null);
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(demoMode ? 'DEMO-ЭС-24-01' : null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(demoMode ? 'ЭС-24-01' : null);
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
   const [assessmentSessions, setAssessmentSessions] = useState<ApiAssessmentSession[]>([]);
   const [privateNotes, setPrivateNotes] = useState<ApiPrivateNote[]>([]);
@@ -396,6 +396,11 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
   const [newStudentGroup, setNewStudentGroup] = useState('');
   const [newStudentCode, setNewStudentCode] = useState('');
   const [groupOptions, setGroupOptions] = useState<ApiGroup[]>([]);
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  const [newGroupCode, setNewGroupCode] = useState('');
+  const [newGroupSpecKk, setNewGroupSpecKk] = useState('');
+  const [newGroupSpecRu, setNewGroupSpecRu] = useState('');
+  const [newGroupYear, setNewGroupYear] = useState('2026-2027');
   const [subjectOptions, setSubjectOptions] = useState<ApiSubject[]>([]);
   const [specialistOptions, setSpecialistOptions] = useState<ApiSpecialist[]>([]);
   const [adminUsers, setAdminUsers] = useState<ApiAdminUser[]>([]);
@@ -439,13 +444,17 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
 
       if (role === 'admin') {
         try {
-          const [aggMetrics, usersList] = await Promise.all([
+          const [aggMetrics, usersList, groupsList, subjectsList] = await Promise.all([
             apiRequest<{ criterion: string; baseline: number; reassessment: number }[]>('/dashboard/metrics'),
             apiRequest<ApiAdminUser[]>('/users'),
+            apiRequest<ApiGroup[]>('/students/groups'),
+            apiRequest<ApiSubject[]>('/students/subjects'),
           ]);
           if (active) {
             setChartRows(mapCriterionList(aggMetrics));
             setAdminUsers(usersList);
+            setGroupOptions(groupsList);
+            setSubjectOptions(subjectsList);
           }
         } catch {
           /* ignore */
@@ -616,7 +625,7 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
   async function createNewThread(title: string) {
     if (!title.trim() || !selectedStudentId) return;
     if (demoMode) {
-      setToast(language === 'kk' ? 'Жаңа тақырып ашылды (ДЕМО)' : 'Новая тема создана (ДЕМО)');
+      setToast(language === 'kk' ? 'Жаңа тақырып ашылды' : 'Новая тема создана');
       return;
     }
     try {
@@ -725,7 +734,7 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
     }
     setStudentRows((current) => [
       {
-        id: `DEMO-${Date.now()}`,
+        id: `ST-${Date.now()}`,
         code: newStudentCode.trim(),
         name: newStudentName.trim(),
         group: newStudentGroup.trim(),
@@ -738,7 +747,50 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
     setNewStudentGroup('');
     setNewStudentCode('');
     setStudentDialogOpen(false);
-    setToast(language === 'kk' ? 'Демо-жазба осы браузер сессиясына қосылды' : 'Демо-запись добавлена в эту сессию браузера');
+    setToast(language === 'kk' ? 'Студент сақталды' : 'Студент сохранён');
+  }
+
+  async function addStudyGroup(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!newGroupCode.trim() || (!newGroupSpecKk.trim() && !newGroupSpecRu.trim())) return;
+    const specKk = newGroupSpecKk.trim() || newGroupSpecRu.trim();
+    const specRu = newGroupSpecRu.trim() || newGroupSpecKk.trim();
+    if (!demoMode) {
+      try {
+        const created = await apiRequest<ApiGroup>('/students/groups', {
+          method: 'POST',
+          body: JSON.stringify({
+            code: newGroupCode.trim(),
+            academicYear: newGroupYear.trim() || '2026-2027',
+            specialtyNameKk: specKk,
+            specialtyNameRu: specRu,
+          }),
+        });
+        setGroupOptions((prev) => [...prev, created]);
+        setNewStudentGroup(created.id);
+        setGroupDialogOpen(false);
+        setNewGroupCode('');
+        setNewGroupSpecKk('');
+        setNewGroupSpecRu('');
+        setToast(language === 'kk' ? 'Оқу тобы қосылды' : 'Учебная группа добавлена');
+        triggerRefresh();
+      } catch (error) {
+        setToast(error instanceof Error ? error.message : 'Не удалось создать учебную группу');
+      }
+      return;
+    }
+    const createdDemo: ApiGroup = {
+      id: `grp-${Date.now()}`,
+      code: newGroupCode.trim(),
+      specialty: { nameKk: specKk, nameRu: specRu },
+    };
+    setGroupOptions((prev) => [...prev, createdDemo]);
+    setNewStudentGroup(createdDemo.code);
+    setGroupDialogOpen(false);
+    setNewGroupCode('');
+    setNewGroupSpecKk('');
+    setNewGroupSpecRu('');
+    setToast(language === 'kk' ? 'Оқу тобы қосылды' : 'Учебная группа добавлена');
   }
 
   function exportReport() {
@@ -760,7 +812,7 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = demoMode ? 'ten-qadam-demo-report.csv' : 'ten-qadam-report.csv';
+    link.download = 'ten-qadam-report.csv';
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -828,6 +880,8 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
                   selectedGoalId={selectedGoalId}
                   onSelectGoal={(id) => setSelectedGoalId(id)}
                   openStudentDialog={() => setStudentDialogOpen(true)}
+                  openGroupDialog={() => setGroupDialogOpen(true)}
+                  groupOptions={groupOptions}
                   planActions={planActions}
                   changePlanStatus={changePlanStatus}
                   messages={messages}
@@ -866,23 +920,71 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
         <form onSubmit={addStudent}>
           <DialogTitle>{t.addStudent}</DialogTitle>
           <DialogContent className="dialog-fields">
-            <Alert severity="info">{t.demo}: {language === 'kk' ? 'тек демонстрациялық деректерді енгізіңіз.' : 'используйте только демонстрационные данные.'}</Alert>
             <TextField autoFocus label={language === 'kk' ? 'Аты-жөні' : 'ФИО'} value={newStudentName} onChange={(event) => setNewStudentName(event.target.value)} required fullWidth />
-            <TextField label={language === 'kk' ? 'Студент коды (ID)' : 'Код студента (ID)'} value={newStudentCode} onChange={(event) => setNewStudentCode(event.target.value)} placeholder="DEMO-ЭС-24-05" required fullWidth />
+            <TextField label={language === 'kk' ? 'Студент коды (ID)' : 'Код студента (ID)'} value={newStudentCode} onChange={(event) => setNewStudentCode(event.target.value)} placeholder="ЭС-24-05" required fullWidth />
             {demoMode ? (
               <TextField label={language === 'kk' ? 'Тобы' : 'Группа'} value={newStudentGroup} onChange={(event) => setNewStudentGroup(event.target.value)} required fullWidth />
             ) : (
-              <TextField select label={language === 'kk' ? 'Оқу тобы' : 'Учебная группа'} value={newStudentGroup} onChange={(event) => setNewStudentGroup(event.target.value)} required fullWidth>
-                {groupOptions.map((group) => (
-                  <MenuItem key={group.id} value={group.id}>
-                    {group.code} · {language === 'kk' ? group.specialty.nameKk : group.specialty.nameRu}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <TextField select label={language === 'kk' ? 'Оқу тобы' : 'Учебная группа'} value={newStudentGroup} onChange={(event) => setNewStudentGroup(event.target.value)} required fullWidth>
+                  {groupOptions.map((group) => (
+                    <MenuItem key={group.id} value={group.id}>
+                      {group.code} · {language === 'kk' ? group.specialty.nameKk : group.specialty.nameRu}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <Button variant="outlined" onClick={() => setGroupDialogOpen(true)} style={{ minWidth: 115, height: 54 }}>
+                  + {language === 'kk' ? 'Жаңа топ' : 'Группа'}
+                </Button>
+              </div>
             )}
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setStudentDialogOpen(false)}>{t.cancel}</Button>
+            <Button type="submit" variant="contained">{t.save}</Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      <Dialog open={groupDialogOpen} onClose={() => setGroupDialogOpen(false)} fullWidth maxWidth="xs">
+        <form onSubmit={addStudyGroup}>
+          <DialogTitle>{language === 'kk' ? 'Жаңа оқу тобын қосу' : 'Добавить учебную группу'}</DialogTitle>
+          <DialogContent className="dialog-fields">
+            <TextField
+              autoFocus
+              label={language === 'kk' ? 'Топ коды (мысалы: 1ЭМ-26)' : 'Код группы (например: 1ЭМ-26)'}
+              value={newGroupCode}
+              onChange={(e) => setNewGroupCode(e.target.value)}
+              placeholder="1ЭМ-26"
+              required
+              fullWidth
+            />
+            <TextField
+              label={language === 'kk' ? 'Мамандық атауы (Қазақша)' : 'Специальность (на казахском)'}
+              value={newGroupSpecKk}
+              onChange={(e) => setNewGroupSpecKk(e.target.value)}
+              placeholder={language === 'kk' ? 'Электрмен жабдықтау' : 'Электрмен жабдықтау'}
+              required
+              fullWidth
+            />
+            <TextField
+              label={language === 'kk' ? 'Мамандық атауы (Орысша)' : 'Специальность (на русском)'}
+              value={newGroupSpecRu}
+              onChange={(e) => setNewGroupSpecRu(e.target.value)}
+              placeholder={language === 'kk' ? 'Электроснабжение' : 'Электроснабжение'}
+              required
+              fullWidth
+            />
+            <TextField
+              label={language === 'kk' ? 'Оқу жылы' : 'Учебный год'}
+              value={newGroupYear}
+              onChange={(e) => setNewGroupYear(e.target.value)}
+              required
+              fullWidth
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setGroupDialogOpen(false)}>{t.cancel}</Button>
             <Button type="submit" variant="contained">{t.save}</Button>
           </DialogActions>
         </form>
@@ -981,7 +1083,7 @@ function InstitutionBar({ language, setLanguage, role, setRole, t, demoMode, use
           <Avatar className="user-avatar"><PersonRounded /></Avatar>
           <span className="user-caption">
             {roleLabels[role][language]}
-            <small>{userName ?? (role === 'teacher' ? 'Айдарова А.С.' : language === 'kk' ? 'Демо қолданушы' : 'Демо-пользователь')}</small>
+            <small>{userName ?? (role === 'teacher' ? 'Айдарова А.С.' : 'Оспанова М.Қ.')}</small>
           </span>
           {demoMode ? (
             <>
@@ -1121,7 +1223,6 @@ function CollaborationPanel({
   setMessageText,
   sendMessage,
   studentInfo,
-  demoMode,
   threads,
   activeThreadId,
   onSelectThread,
@@ -1135,7 +1236,7 @@ function CollaborationPanel({
   setMessageText: (value: string) => void;
   sendMessage: (event: FormEvent<HTMLFormElement>) => void;
   studentInfo: StudentView | null;
-  demoMode: boolean;
+  demoMode?: boolean;
   threads: ApiThread[];
   activeThreadId: string | null;
   onSelectThread: (id: string) => void;
@@ -1193,7 +1294,6 @@ function CollaborationPanel({
                 ? `${threads.find((th) => th.id === activeThreadId)?.title ?? (language === 'kk' ? 'Консилиум' : 'Консилиум')}: ${studentInfo.name} (${studentInfo.group})`
                 : (language === 'kk' ? 'Студент таңдалмаған' : 'Студент не выбран')}
             </strong>
-            {demoMode && <span className="demo-inline">DEMO</span>}
           </div>
           <div className="conversation-messages scrollable-chat" aria-live="polite">
             {messages.map((message) => (
@@ -1297,6 +1397,8 @@ function SectionContent({
   selectedGoalId,
   onSelectGoal,
   openStudentDialog,
+  openGroupDialog,
+  groupOptions,
   planActions,
   changePlanStatus,
   messages,
@@ -1334,6 +1436,8 @@ function SectionContent({
   selectedGoalId: string | null;
   onSelectGoal: (id: string) => void;
   openStudentDialog: () => void;
+  openGroupDialog: () => void;
+  groupOptions: ApiGroup[];
   planActions: PlanAction[];
   changePlanStatus: (id: string) => void;
   messages: Message[];
@@ -1430,6 +1534,32 @@ function SectionContent({
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
+
+  const [subjectDialogOpen, setSubjectDialogOpen] = useState(false);
+  const [newSubjectCode, setNewSubjectCode] = useState('');
+  const [newSubjectNameKk, setNewSubjectNameKk] = useState('');
+  const [newSubjectNameRu, setNewSubjectNameRu] = useState('');
+
+  async function submitSubject(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!newSubjectCode.trim() || (!newSubjectNameKk.trim() && !newSubjectNameRu.trim())) return;
+    const nameKk = newSubjectNameKk.trim() || newSubjectNameRu.trim();
+    const nameRu = newSubjectNameRu.trim() || newSubjectNameKk.trim();
+    try {
+      await apiRequest('/students/subjects', {
+        method: 'POST',
+        body: JSON.stringify({ code: newSubjectCode.trim(), nameKk, nameRu }),
+      });
+      setSubjectDialogOpen(false);
+      setNewSubjectCode('');
+      setNewSubjectNameKk('');
+      setNewSubjectNameRu('');
+      setToast(language === 'kk' ? 'Пән қосылды' : 'Учебный предмет добавлен');
+      onRefresh();
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Ошибка создания предмета');
+    }
+  }
 
   const q = query.trim().toLocaleLowerCase(language === 'kk' ? 'kk-KZ' : 'ru-RU');
   const filteredStudents = studentRows.filter((row) => `${row.name} ${row.group} ${row.specialty} ${row.code}`.toLocaleLowerCase().includes(q));
@@ -1868,12 +1998,25 @@ function SectionContent({
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {activeSection === 'users' && role === 'admin' && (
-            <Button variant="contained" startIcon={<AddRounded />} onClick={() => setUserDialogOpen(true)}>
-              {language === 'kk' ? 'Пайдаланушы қосу' : 'Создать пользователя'}
-            </Button>
+            <>
+              <Button variant="outlined" startIcon={<AddRounded />} onClick={openGroupDialog}>
+                {language === 'kk' ? 'Оқу тобын қосу' : 'Добавить группу'}
+              </Button>
+              <Button variant="outlined" startIcon={<AddRounded />} onClick={() => setSubjectDialogOpen(true)}>
+                {language === 'kk' ? 'Пән қосу' : 'Добавить предмет'}
+              </Button>
+              <Button variant="contained" startIcon={<AddRounded />} onClick={() => setUserDialogOpen(true)}>
+                {language === 'kk' ? 'Пайдаланушы қосу' : 'Создать пользователя'}
+              </Button>
+            </>
           )}
           {activeSection === 'students' && (demoMode || role === 'defectologist') && (
-            <Button variant="contained" startIcon={<AddRounded />} onClick={openStudentDialog}>{t.addStudent}</Button>
+            <>
+              <Button variant="outlined" startIcon={<AddRounded />} onClick={openGroupDialog}>
+                {language === 'kk' ? 'Оқу тобын қосу' : 'Добавить учебную группу'}
+              </Button>
+              <Button variant="contained" startIcon={<AddRounded />} onClick={openStudentDialog}>{t.addStudent}</Button>
+            </>
           )}
           {['normative', 'guides', 'library'].includes(activeSection) && canUploadResource && (
             <Button variant="contained" startIcon={<UploadFileRounded />} onClick={() => setDocDialogOpen(true)}>
@@ -1987,6 +2130,62 @@ function SectionContent({
               </tbody>
             </table>
             {filteredAdminUsers.length === 0 && <p className="empty-state">{t.emptySearch}</p>}
+          </div>
+
+          <div className="updates-grid" style={{ marginTop: 18 }}>
+            <Paper className="updates-card" elevation={0}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <h2 style={{ margin: 0 }}>{language === 'kk' ? `Оқу топтары мен мамандықтар (${groupOptions.length})` : `Учебные группы и специальности (${groupOptions.length})`}</h2>
+                <Button size="small" variant="outlined" startIcon={<AddRounded />} onClick={openGroupDialog}>
+                  {language === 'kk' ? 'Топ қосу' : 'Добавить группу'}
+                </Button>
+              </div>
+              <div className="student-table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>{language === 'kk' ? 'Топ коды' : 'Код группы'}</th>
+                      <th>{language === 'kk' ? 'Мамандығы' : 'Специальность'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groupOptions.map((g) => (
+                      <tr key={g.id}>
+                        <td><strong>{g.code}</strong></td>
+                        <td>{language === 'kk' ? g.specialty.nameKk : g.specialty.nameRu}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Paper>
+
+            <Paper className="updates-card" elevation={0}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <h2 style={{ margin: 0 }}>{language === 'kk' ? `Оқу пәндері (${subjectOptions.length})` : `Учебные предметы (${subjectOptions.length})`}</h2>
+                <Button size="small" variant="outlined" startIcon={<AddRounded />} onClick={() => setSubjectDialogOpen(true)}>
+                  {language === 'kk' ? 'Пән қосу' : 'Добавить предмет'}
+                </Button>
+              </div>
+              <div className="student-table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>{language === 'kk' ? 'Код' : 'Код'}</th>
+                      <th>{language === 'kk' ? 'Пән атауы' : 'Название предмета'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {subjectOptions.map((s) => (
+                      <tr key={s.id}>
+                        <td className="muted-cell">{s.code}</td>
+                        <td><strong>{language === 'kk' ? s.nameKk : s.nameRu}</strong></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Paper>
           </div>
 
           <Dialog open={userDialogOpen} onClose={() => setUserDialogOpen(false)} fullWidth maxWidth="xs">
@@ -2149,7 +2348,7 @@ function SectionContent({
               <>
                 <div className="student-card-header">
                   <div className="student-card-title">
-                    <img src="/assets/demo-avatar.jpg" alt={studentInfo.name} />
+                    <img src="/assets/student-avatar.svg" alt={studentInfo.name} />
                     <div>
                       <span className="eyebrow">{t.studentCard} · {studentInfo.code}</span>
                       <h2>{studentInfo.name}</h2>
@@ -3039,6 +3238,42 @@ function SectionContent({
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setNoteDialogOpen(false)}>{t.cancel}</Button>
+            <Button type="submit" variant="contained">{t.save}</Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      {/* DIALOG: ADD SUBJECT */}
+      <Dialog open={subjectDialogOpen} onClose={() => setSubjectDialogOpen(false)} fullWidth maxWidth="xs">
+        <form onSubmit={submitSubject}>
+          <DialogTitle>{language === 'kk' ? 'Жаңа оқу пәнін қосу' : 'Добавить учебный предмет'}</DialogTitle>
+          <DialogContent className="dialog-fields">
+            <TextField
+              autoFocus
+              label={language === 'kk' ? 'Пән коды (мысалы: ELECTRO-1)' : 'Код предмета (например: ELECTRO-1)'}
+              value={newSubjectCode}
+              onChange={(e) => setNewSubjectCode(e.target.value)}
+              placeholder="ELECTRO-1"
+              required
+              fullWidth
+            />
+            <TextField
+              label={language === 'kk' ? 'Пән атауы (Қазақша)' : 'Название предмета (на казахском)'}
+              value={newSubjectNameKk}
+              onChange={(e) => setNewSubjectNameKk(e.target.value)}
+              required
+              fullWidth
+            />
+            <TextField
+              label={language === 'kk' ? 'Пән атауы (Орысша)' : 'Название предмета (на русском)'}
+              value={newSubjectNameRu}
+              onChange={(e) => setNewSubjectNameRu(e.target.value)}
+              required
+              fullWidth
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setSubjectDialogOpen(false)}>{t.cancel}</Button>
             <Button type="submit" variant="contained">{t.save}</Button>
           </DialogActions>
         </form>

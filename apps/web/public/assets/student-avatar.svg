@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1e40af" />
+    </linearGradient>
+    <linearGradient id="shirt" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#152656" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <clipPath id="circleClip">
+      <circle cx="60" cy="60" r="60" />
+    </clipPath>
+  </defs>
+  <g clip-path="url(#circleClip)">
+    <rect width="120" height="120" fill="url(#bg)" />
+    <circle cx="96" cy="24" r="32" fill="#60a5fa" opacity="0.22" />
+    <circle cx="20" cy="95" r="38" fill="#93c5fd" opacity="0.18" />
+    <!-- Shoulders / Jacket -->
+    <path d="M22 122 C22 92, 40 84, 60 84 C80 84, 98 92, 98 122 Z" fill="url(#shirt)" />
+    <!-- Collar / Shirt -->
+    <path d="M48 85 L60 103 L72 85 Z" fill="#ffffff" />
+    <path d="M57 93 L60 112 L63 93 Z" fill="#2563eb" />
+    <!-- Neck -->
+    <rect x="52" y="68" width="16" height="18" rx="6" fill="#f5CBA7" />
+    <!-- Ears -->
+    <circle cx="39" cy="54" r="5" fill="#eab68f" />
+    <circle cx="81" cy="54" r="5" fill="#eab68f" />
+    <!-- Head -->
+    <rect x="41" y="32" width="38" height="44" rx="19" fill="#fad7b8" />
+    <!-- Hair -->
+    <path d="M40 48 C40 31, 51 24, 61 24 C73 24, 81 32, 81 47 C78 39, 71 35, 59 36 C49 37, 44 41, 40 48 Z" fill="#1e293b" />
+    <!-- Eyes & Eyebrows -->
+    <circle cx="52" cy="51" r="2.3" fill="#1e293b" />
+    <circle cx="68" cy="51" r="2.3" fill="#1e293b" />
+    <path d="M48 46 Q52 44 56 46" stroke="#1e293b" stroke-width="1.8" stroke-linecap="round" fill="none" />
+    <path d="M64 46 Q68 44 72 46" stroke="#1e293b" stroke-width="1.8" stroke-linecap="round" fill="none" />
+    <!-- Smile -->
+    <path d="M54 62 Q60 67 66 62" stroke="#c07a52" stroke-width="2.2" stroke-linecap="round" fill="none" />
+  </g>
+</svg>

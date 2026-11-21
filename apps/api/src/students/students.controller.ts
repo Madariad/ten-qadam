@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } fro
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { SessionGuard } from '../auth/session.guard.js';
-import { CreateAssignmentDto, CreateLearningGoalDto, CreateStudentDto, CreateSupportProfileDto } from './students.dto.js';
+import { CreateAssignmentDto, CreateLearningGoalDto, CreateStudentDto, CreateStudyGroupDto, CreateSubjectDto, CreateSupportProfileDto } from './students.dto.js';
 import { StudentsService } from './students.service.js';
 
 @ApiTags('students')
@@ -11,7 +11,9 @@ import { StudentsService } from './students.service.js';
 export class StudentsController {
   constructor(private readonly students: StudentsService) {}
   @Get('groups') groups(@Req() request: Request) { return this.students.groups(request.auth!); }
+  @Post('groups') createGroup(@Req() request: Request, @Body() body: CreateStudyGroupDto) { return this.students.createGroup(request.auth!, body); }
   @Get('subjects') subjects(@Req() request: Request) { return this.students.subjects(request.auth!); }
+  @Post('subjects') createSubject(@Req() request: Request, @Body() body: CreateSubjectDto) { return this.students.createSubject(request.auth!, body); }
   @Get('specialists') specialists(@Req() request: Request) { return this.students.specialists(request.auth!); }
   @Get() list(@Req() request: Request, @Query('search') search?: string) { return this.students.findAll(request.auth!, search?.slice(0, 100)); }
   @Get(':studentId') one(@Req() request: Request, @Param('studentId') id: string) { return this.students.findOne(request.auth!, id); }

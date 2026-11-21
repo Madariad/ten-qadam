@@ -84,7 +84,7 @@ export class SupportService {
   async updateAction(user: AuthContext, studentId: string, actionId: string, body: UpdatePlanActionDto) {
     const action = await this.prisma.supportPlanAction.findFirst({ where: { id: actionId, plan: { institutionId: user.institutionId, studentId } } });
     if (!action) throw new NotFoundException('Мероприятие не найдено');
-    if (action.responsibleId !== user.userId && !user.roles.includes('DEFECTOLOGIST') && !user.roles.includes('SOCIAL_PEDAGOG')) throw new ForbiddenException('Изменить статус может ответственный специалист');
+    if (action.responsibleId !== user.userId && !user.roles.includes('DEFECTOLOGIST') && !user.roles.includes('SOCIAL_PEDAGOG') && !user.roles.includes('PSYCHOLOGIST')) throw new ForbiddenException('Изменить статус может ответственный специалист');
     await this.access.requireStudent(user, studentId, action.goalId ? (await this.goalSubject(user, studentId, action.goalId)) : undefined);
     return this.prisma.supportPlanAction.update({ where: { id: actionId }, data: { status: body.status, result: body.result, completedAt: body.status === 'COMPLETED' ? new Date() : null } });
   }
