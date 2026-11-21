@@ -48,6 +48,7 @@ import RefreshRounded from '@mui/icons-material/RefreshRounded';
 import ManageAccountsRounded from '@mui/icons-material/ManageAccountsRounded';
 import MenuRounded from '@mui/icons-material/MenuRounded';
 import CloseRounded from '@mui/icons-material/CloseRounded';
+import DeleteOutlineRounded from '@mui/icons-material/DeleteOutlineRounded';
 import { copy, type Language } from './i18n';
 import {
   apiRequest,
@@ -192,6 +193,7 @@ type ApiLibraryFile = {
 };
 type ApiLibraryItem = {
   id: string;
+  createdById?: string;
   kind: 'NORMATIVE' | 'TEACHER_GUIDE' | 'METHODICAL';
   category: string;
   titleKk: string;
@@ -204,6 +206,7 @@ type ApiLibraryItem = {
 };
 type ResourceRow = {
   id: string;
+  createdById?: string;
   kind: 'normative' | 'guide' | 'method';
   title: string;
   ruTitle: string;
@@ -419,6 +422,7 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
       const items = await apiRequest<ApiLibraryItem[]>('/library');
       setLibraryRows(items.map((item) => ({
         id: item.id,
+        createdById: item.createdById,
         kind: item.kind === 'NORMATIVE' ? 'normative' : item.kind === 'TEACHER_GUIDE' ? 'guide' : 'method',
         title: item.titleKk,
         ruTitle: item.titleRu,
@@ -878,6 +882,7 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
                   language={language}
                   t={t}
                   role={role}
+                  currentUserId={authenticatedUser?.id ?? authenticatedUser?.userId}
                   query={query}
                   setQuery={setQuery}
                   studentRows={studentRows}
@@ -1409,6 +1414,7 @@ function SectionContent({
   language,
   t,
   role,
+  currentUserId,
   query,
   setQuery,
   studentRows,
@@ -1448,6 +1454,7 @@ function SectionContent({
   language: Language;
   t: typeof copy.kk;
   role: Role;
+  currentUserId?: string;
   query: string;
   setQuery: (value: string) => void;
   studentRows: StudentRecord[];
@@ -1785,6 +1792,66 @@ function SectionContent({
       setToast(language === 'kk' ? 'Файл қосылды' : 'Файл прикреплён');
     } catch (error) {
       setToast(error instanceof Error ? error.message : 'Не удалось прикрепить файл');
+    }
+  }
+
+  function canManageResource(item: ResourceRow): boolean {
+    if (demoMode) return true;
+    if (role === 'admin' || role === 'defectologist') return true;
+    if (currentUserId && item.createdById === currentUserId) return true;
+    return false;
+  }
+
+  async function handleDeleteResource(item: ResourceRow) {
+    if (demoMode) {
+      setLocalResourceRows((prev) => prev.filter((r) => r.id !== item.id));
+      if (selectedResource?.id === item.id) setSelectedResource(null);
+      setToast(language === 'kk' ? 'Құжат өшірілді' : 'Документ удалён');
+      return;
+    }
+    try {
+      await apiRequest(`/library/${item.id}`, { method: 'DELETE' });
+      if (selectedResource?.id === item.id) setSelectedResource(null);
+      await onReloadLibrary();
+      setToast(language === 'kk' ? 'Құжат өшірілді' : 'Документ удалён');
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Не удалось удалить документ');
+    }
+  }
+
+  async function handleDeleteResourceFile(item: ResourceRow, fileId: string) {
+    if (demoMode) {
+      const updatedFiles = item.files.filter((f) => f.id !== fileId);
+      const updated = { ...item, files: updatedFiles, localUrl: updatedFiles.length === 0 ? undefined : item.localUrl };
+      setLocalResourceRows((prev) => prev.map((r) => (r.id === item.id ? updated : r)));
+      setSelectedResource(updated);
+      setSelectedFileIndex(0);
+      setToast(language === 'kk' ? 'Файл өшірілді' : 'Файл удалён');
+      return;
+    }
+    try {
+      await apiRequest(`/library/files/${fileId}`, { method: 'DELETE' });
+      await onReloadLibrary();
+      const refreshed = await apiRequest<ApiLibraryItem[]>('/library');
+      const match = refreshed.find((r) => r.id === item.id);
+      if (match) {
+        setSelectedResource({
+          id: match.id,
+          createdById: match.createdById,
+          kind: match.kind === 'NORMATIVE' ? 'normative' : match.kind === 'TEACHER_GUIDE' ? 'guide' : 'method',
+          title: match.titleKk,
+          ruTitle: match.titleRu,
+          summary: match.summaryKk ?? match.summaryRu ?? '',
+          ruSummary: match.summaryRu ?? match.summaryKk ?? '',
+          category: match.category,
+          date: match.publishedAt ? new Date(match.publishedAt).toLocaleDateString() : '',
+          files: match.files ?? [],
+        });
+        setSelectedFileIndex(0);
+      }
+      setToast(language === 'kk' ? 'Файл өшірілді' : 'Файл удалён');
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : 'Не удалось удалить файл');
     }
   }
 
@@ -2608,7 +2675,18 @@ function SectionContent({
                 <p>{language === 'kk' ? item.summary : item.ruSummary}</p>
                 <div className="resource-footer">
                   <time>{item.date}</time>
-                  <div style={{ display: 'flex', gap: 4 }}>
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    {canManageResource(item) && (
+                      <Tooltip title={language === 'kk' ? 'Құжатты өшіру' : 'Удалить документ'}>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => void handleDeleteResource(item)}
+                        >
+                          <DeleteOutlineRounded fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                     {item.files[0] && !demoMode && (
                       <Tooltip title={language === 'kk' ? 'Жүктеп алу' : 'Скачать файл'}>
                         <IconButton
@@ -2759,7 +2837,18 @@ function SectionContent({
                 <div>{language === 'kk' ? selectedResource.title : selectedResource.ruTitle}</div>
                 <div className="resource-dialog-category" style={{ margin: 0 }}>{selectedResource.category} · {selectedResource.date}</div>
               </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                {canManageResource(selectedResource) && (
+                  <Button
+                    size="small"
+                    color="error"
+                    variant="outlined"
+                    startIcon={<DeleteOutlineRounded />}
+                    onClick={() => void handleDeleteResource(selectedResource)}
+                  >
+                    {language === 'kk' ? 'Құжатты өшіру' : 'Удалить документ'}
+                  </Button>
+                )}
                 {canUploadResource && (
                   <Button component="label" size="small" variant="outlined" startIcon={<UploadFileRounded />}>
                     {language === 'kk' ? 'Файл тіркеу' : 'Прикрепить файл'}
@@ -2772,6 +2861,17 @@ function SectionContent({
                         if (f) void handleAttachFileToExisting(selectedResource, f);
                       }}
                     />
+                  </Button>
+                )}
+                {activeFile && canManageResource(selectedResource) && (
+                  <Button
+                    size="small"
+                    color="error"
+                    variant="text"
+                    startIcon={<DeleteOutlineRounded />}
+                    onClick={() => void handleDeleteResourceFile(selectedResource, activeFile.id)}
+                  >
+                    {language === 'kk' ? 'Файлды өшіру' : 'Удалить файл'}
                   </Button>
                 )}
                 {activeFile && !demoMode && (
@@ -2793,7 +2893,7 @@ function SectionContent({
               <p style={{ marginTop: 0, fontSize: 12, color: '#45506e' }}>
                 {language === 'kk' ? selectedResource.summary : selectedResource.ruSummary}
               </p>
-              {selectedResource.files.length > 1 && (
+              {selectedResource.files.length > 0 && (
                 <div className="doc-file-chips" style={{ marginBottom: 10 }}>
                   {selectedResource.files.map((f, idx) => (
                     <Chip
@@ -2801,6 +2901,7 @@ function SectionContent({
                       label={f.originalName}
                       color={idx === selectedFileIndex ? 'primary' : 'default'}
                       onClick={() => setSelectedFileIndex(idx)}
+                      onDelete={canManageResource(selectedResource) ? () => void handleDeleteResourceFile(selectedResource, f.id) : undefined}
                       clickable
                     />
                   ))}
