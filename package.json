@@ -13,7 +13,8 @@
     "dev": "concurrently -k -n api,web -c blue,green \"npm:dev:api\" \"npm:dev:web\"",
     "dev:web": "npm run dev -w @ten-qadam/web -- --host 0.0.0.0",
     "dev:api": "npm run start:dev -w @ten-qadam/api",
-    "build": "npm run build -w @ten-qadam/api && npm run build -w @ten-qadam/web",
+    "build": "npm run db:generate && npm run build -w @ten-qadam/api && npm run build -w @ten-qadam/web",
+    "start": "npm run prisma:deploy -w @ten-qadam/api && npm run prisma:seed -w @ten-qadam/api && npm run start -w @ten-qadam/api",
     "db:generate": "npm run prisma:generate -w @ten-qadam/api",
     "db:migrate": "npm run prisma:migrate -w @ten-qadam/api",
     "db:seed": "npm run prisma:seed -w @ten-qadam/api"

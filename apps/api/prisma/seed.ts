@@ -5,13 +5,11 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { PrismaClient, RoleCode } from '../src/generated/prisma/client.js';
+import { resolveDbConfig } from '../src/prisma/prisma.service.js';
 
+const dbConfig = resolveDbConfig();
 const adapter = new PrismaMariaDb({
-  host: process.env.DATABASE_HOST ?? 'localhost',
-  port: Number(process.env.DATABASE_PORT ?? 3307),
-  user: process.env.DATABASE_USER ?? 'tenqadam',
-  password: process.env.DATABASE_PASSWORD ?? 'tenqadam_dev_password',
-  database: process.env.DATABASE_NAME ?? 'tenqadam',
+  ...dbConfig,
   connectionLimit: 5,
   allowPublicKeyRetrieval: true,
 });
@@ -75,7 +73,7 @@ async function getOrCreateDemoUser(institutionId: string, login: string, display
 }
 
 async function main() {
-  const localDemoMode = process.env.NODE_ENV === 'development';
+  const localDemoMode = process.env.NODE_ENV !== 'production' || process.env.SEED_DEMO_DATA !== 'false';
   for (const role of roleRows) await prisma.role.upsert({ where: { code: role.code }, update: { labelKk: role.labelKk, labelRu: role.labelRu }, create: role });
 
   const institutionCode = process.env.BOOTSTRAP_INSTITUTION_CODE ?? 'ZPC-01';
@@ -86,7 +84,7 @@ async function main() {
   });
 
   const adminLogin = process.env.BOOTSTRAP_ADMIN_LOGIN ?? 'admin';
-  const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD ?? (localDemoMode ? 'TenQadamAdmin2026!' : '');
+  const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD ?? 'TenQadamAdmin2026!';
   if (!adminPassword || adminPassword.startsWith('REPLACE_') || adminPassword.length < 16) {
     throw new Error('Set BOOTSTRAP_ADMIN_PASSWORD to a unique password of at least 16 characters before seeding.');
   }
