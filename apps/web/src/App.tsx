@@ -302,14 +302,6 @@ function LoginScreen({ onLogin, error }: { onLogin: (login: string, password: st
     setBusy(false);
   }
 
-  const demoCredentials = [
-    { label: language === 'kk' ? 'Дефектолог' : 'Дефектолог', login: 'demo-defectologist', pass: 'Defectolog2026!!' },
-    { label: language === 'kk' ? 'Пән оқытушысы' : 'Преподаватель', login: 'demo-teacher', pass: 'Teacher2026Pass!' },
-    { label: language === 'kk' ? 'Педагог-психолог' : 'Психолог', login: 'demo-psychologist', pass: 'Psychologist2026!' },
-    { label: language === 'kk' ? 'Әлеуметтік педагог' : 'Соц. педагог', login: 'demo-social', pass: 'SocialPed2026Pass!' },
-    { label: language === 'kk' ? 'Әкімшілік' : 'Администрация', login: 'admin', pass: 'TenQadamAdmin2026!' },
-  ];
-
   return (
     <div className="login-page">
       <BrandHeader language={language} setLanguage={setLanguage} t={t} />
@@ -317,27 +309,13 @@ function LoginScreen({ onLogin, error }: { onLogin: (login: string, password: st
         <div className="login-mark"><img src="/assets/ten-qadam-logo.png" alt="TEN QADAM" /></div>
         <div className="eyebrow">TEN QADAM</div>
         <h1>{language === 'kk' ? 'Жүйеге кіру' : 'Вход в платформу'}</h1>
-        <p>{language === 'kk' ? 'Жеке логин мен құпиясөзді енгізіңіз немесе төмендегі рөлді таңдаңыз.' : 'Введите личный логин и пароль или выберите роль ниже.'}</p>
+        <p>{language === 'kk' ? 'Жеке логин мен құпиясөзді енгізіңіз.' : 'Введите личный логин и пароль.'}</p>
         <form onSubmit={submit} className="login-form">
           <TextField label={language === 'kk' ? 'Логин' : 'Логин'} value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" required fullWidth />
           <TextField label={language === 'kk' ? 'Құпиясөз' : 'Пароль'} value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" required fullWidth />
           {error && <Alert severity="error">{error}</Alert>}
           <Button type="submit" variant="contained" disabled={busy} fullWidth>{busy ? '…' : language === 'kk' ? 'Кіру' : 'Войти'}</Button>
         </form>
-        <div className="quick-login-chips">
-          {demoCredentials.map((cred) => (
-            <Chip
-              key={cred.login}
-              size="small"
-              label={cred.label}
-              onClick={() => {
-                setUsername(cred.login);
-                setPassword(cred.pass);
-              }}
-              clickable
-            />
-          ))}
-        </div>
       </Paper>
     </div>
   );
