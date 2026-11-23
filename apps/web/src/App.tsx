@@ -1121,21 +1121,14 @@ function InstitutionBar({ language, setLanguage, role, setRole, t, demoMode, use
   );
 }
 
-function DashboardOverview({ language, role, setActiveSection, t, demoMode, summary }: {
+function DashboardOverview({ language, role, setActiveSection, t, summary }: {
   language: Language;
   role: Role;
   setActiveSection: (key: SectionKey) => void;
   t: typeof copy.kk;
-  demoMode: boolean;
+  demoMode?: boolean;
   summary: ApiSummary | null;
 }) {
-  const kpis = [
-    { label: t.studentsSupported, value: demoMode ? '42' : String(summary?.students ?? '—'), Icon: GroupsRounded, tone: 'blue' },
-    { label: t.supportPlans, value: demoMode ? '42' : String(summary?.plans ?? '—'), Icon: AssignmentRounded, tone: 'teal' },
-    { label: t.planProgress, value: demoMode ? '78 %' : summary ? `${summary.actionCompletion} %` : '—', Icon: BarChartRounded, tone: 'green' },
-    { label: t.learningProgress, value: demoMode ? '+15 %' : summary?.learningChange == null ? '—' : `${summary.learningChange > 0 ? '+' : ''}${summary.learningChange} п.п.`, Icon: TrendingUpRounded, tone: 'purple' },
-  ];
-
   return (
     <div className="overview-content">
       <section className="welcome-banner">
@@ -1146,17 +1139,26 @@ function DashboardOverview({ language, role, setActiveSection, t, demoMode, summ
         </div>
         <img src="/assets/students-illustration.png" alt="" className="students-art" />
       </section>
-      <div className="kpi-grid">
-        {kpis.map(({ label, value, Icon, tone }) => (
-          <Paper key={label} className="kpi-card" elevation={0}>
-            <div className={`kpi-icon ${tone}`}><Icon /></div>
-            <div className="kpi-text">
-              <span>{label}</span>
-              <strong className={tone === 'green' ? 'green-value' : tone === 'purple' ? 'purple-value' : ''}>{value}</strong>
-            </div>
-          </Paper>
-        ))}
-      </div>
+
+      <Paper className="college-photo-showcase" elevation={0}>
+        <img
+          src="/assets/college-classroom.jpg"
+          alt={language === 'kk' ? 'Талдықорған жоғары политехникалық колледжі' : 'Талдыкорганский высший политехнический колледж'}
+          className="college-photo-img"
+        />
+        <div className="college-photo-caption">
+          <div>
+            <span className="college-photo-badge">
+              {language === 'kk' ? 'Талдықорған жоғары политехникалық колледжі' : 'Талдыкорганский высший политехнический колледж'}
+            </span>
+            <h2>
+              {language === 'kk'
+                ? 'Колледждегі инклюзивті білім беруді басқару және психологиялық-педагогикалық сүйемелдеу ортасы'
+                : 'Среда управления инклюзивным образованием и психолого-педагогического сопровождения в колледже'}
+            </h2>
+          </div>
+        </div>
+      </Paper>
 
       <div className="updates-grid">
         <Paper className="updates-card" elevation={0}>
