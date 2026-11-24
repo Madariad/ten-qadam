@@ -46,6 +46,7 @@ import UploadFileRounded from '@mui/icons-material/UploadFileRounded';
 import VisibilityRounded from '@mui/icons-material/VisibilityRounded';
 import RefreshRounded from '@mui/icons-material/RefreshRounded';
 import ManageAccountsRounded from '@mui/icons-material/ManageAccountsRounded';
+import AccessibilityNewRounded from '@mui/icons-material/AccessibilityNewRounded';
 import MenuRounded from '@mui/icons-material/MenuRounded';
 import CloseRounded from '@mui/icons-material/CloseRounded';
 import DeleteOutlineRounded from '@mui/icons-material/DeleteOutlineRounded';
@@ -79,6 +80,7 @@ const iconMap: Record<string, IconComponent> = {
   manage_accounts: ManageAccountsRounded,
   description: DescriptionRounded,
   groups: GroupsRounded,
+  accessibility: AccessibilityNewRounded,
   menu_book: MenuBookRounded,
   bar_chart: BarChartRounded,
   event_note: EventNoteRounded,
@@ -207,7 +209,7 @@ type ApiLibraryItem = {
 type ResourceRow = {
   id: string;
   createdById?: string;
-  kind: 'normative' | 'guide' | 'method';
+  kind: 'normative' | 'guide' | 'method' | 'ebbk';
   title: string;
   ruTitle: string;
   summary: string;
@@ -364,7 +366,7 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
   const [chartRows, setChartRows] = useState<typeof metrics>(demoMode ? metrics : []);
   const [libraryRows, setLibraryRows] = useState<ResourceRow[]>(demoMode ? resourceItems.map((item, idx) => ({
     id: `demo-res-${idx}`,
-    kind: item.kind as 'normative' | 'guide' | 'method',
+    kind: item.kind as 'normative' | 'guide' | 'method' | 'ebbk',
     title: item.title,
     ruTitle: item.ruTitle,
     summary: item.summary,
@@ -401,7 +403,13 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
       setLibraryRows(items.map((item) => ({
         id: item.id,
         createdById: item.createdById,
-        kind: item.kind === 'NORMATIVE' ? 'normative' : item.kind === 'TEACHER_GUIDE' ? 'guide' : 'method',
+        kind: item.category.startsWith('ЕББҚ')
+          ? 'ebbk'
+          : item.kind === 'NORMATIVE'
+            ? 'normative'
+            : item.kind === 'TEACHER_GUIDE'
+              ? 'guide'
+              : 'method',
         title: item.titleKk,
         ruTitle: item.titleRu,
         summary: item.summaryKk ?? item.summaryRu ?? '',
@@ -1491,6 +1499,9 @@ function SectionContent({
   // Document creation & upload dialog
   const [docDialogOpen, setDocDialogOpen] = useState(false);
   const [docCategory, setDocCategory] = useState('');
+  const [ebbkDiagnosis, setEbbkDiagnosis] = useState('Көру қабілеті бұзылған (Нашар көретіндер / Слабовидящие)');
+  const [ebbkDegree, setEbbkDegree] = useState('І, ІІ, ІІІ дәреже (I, II, III степень)');
+  const [ebbkFilter, setEbbkFilter] = useState('all');
   const [docTitleKk, setDocTitleKk] = useState('');
   const [docTitleRu, setDocTitleRu] = useState('');
   const [docSummaryKk, setDocSummaryKk] = useState('');
@@ -1578,17 +1589,32 @@ function SectionContent({
     ? resourceRows.filter((item) => item.kind === 'normative')
     : activeSection === 'guides'
       ? resourceRows.filter((item) => item.kind === 'guide')
-      : resourceRows.filter((item) => item.kind === 'method' || item.kind === 'guide');
-  const filteredResources = resources.filter((item) => `${item.title} ${item.ruTitle} ${item.summary} ${item.category}`.toLocaleLowerCase().includes(q));
+      : activeSection === 'ebbk'
+        ? resourceRows.filter((item) => item.kind === 'ebbk')
+        : resourceRows.filter((item) => item.kind === 'method' || item.kind === 'guide');
+  const filteredResources = resources.filter((item) => {
+    const matchesSearch = `${item.title} ${item.ruTitle} ${item.summary} ${item.ruSummary} ${item.category}`.toLocaleLowerCase().includes(q);
+    if (!matchesSearch) return false;
+    if (activeSection === 'ebbk' && ebbkFilter !== 'all') {
+      const hay = `${item.category} ${item.title} ${item.ruTitle}`.toLocaleLowerCase();
+      if (ebbkFilter === 'vision') return hay.includes('көру') || hay.includes('зрен') || hay.includes('слабовид');
+      if (ebbkFilter === 'hearing') return hay.includes('есту') || hay.includes('слух') || hay.includes('слабослыш');
+      if (ebbkFilter === 'motor') return hay.includes('тірек') || hay.includes('тқа') || hay.includes('ода') || hay.includes('нода');
+      if (ebbkFilter === 'speech') return hay.includes('сөйлеу') || hay.includes('коммуник') || hay.includes('аутизм') || hay.includes('рас') || hay.includes('реч');
+      if (ebbkFilter === 'cognitive') return hay.includes('таным') || hay.includes('зейін') || hay.includes('зпр') || hay.includes('пдт');
+    }
+    return true;
+  });
 
   const heading = activeSection === 'users' ? t.users
     : activeSection === 'students' ? t.students
-      : activeSection === 'normative' ? t.normative
-        : activeSection === 'guides' ? t.guides
-          : activeSection === 'metrics' ? t.metrics
-            : activeSection === 'plans' ? t.plans
-              : activeSection === 'collaboration' ? t.collaboration
-                : activeSection === 'library' ? t.library : t.reports;
+      : activeSection === 'ebbk' ? t.ebbk
+        : activeSection === 'normative' ? t.normative
+          : activeSection === 'guides' ? t.guides
+            : activeSection === 'metrics' ? t.metrics
+              : activeSection === 'plans' ? t.plans
+                : activeSection === 'collaboration' ? t.collaboration
+                  : activeSection === 'library' ? t.library : t.reports;
 
   const allRolesList: { code: ApiRole; labelKk: string; labelRu: string }[] = [
     { code: 'DEFECTOLOGIST', labelKk: 'Дефектолог', labelRu: 'Дефектолог' },
@@ -1686,13 +1712,15 @@ function SectionContent({
     const kindApi = activeSection === 'normative' ? 'NORMATIVE' : activeSection === 'guides' ? 'TEACHER_GUIDE' : 'METHODICAL';
     const titleKk = docTitleKk.trim() || docTitleRu.trim();
     const titleRu = docTitleRu.trim() || docTitleKk.trim();
-    const category = docCategory.trim() || (activeSection === 'normative' ? 'Нормативтік құжат' : activeSection === 'guides' ? 'Нұсқаулық' : 'Әдістемелік материал');
+    const category = activeSection === 'ebbk'
+      ? `ЕББҚ · ${ebbkDiagnosis.trim() || 'Жалпы ерекшеліктер'}${ebbkDegree.trim() ? ` | ${ebbkDegree.trim()}` : ''}`
+      : (docCategory.trim() || (activeSection === 'normative' ? 'Нормативтік құжат' : activeSection === 'guides' ? 'Нұсқаулық' : 'Әдістемелік материал'));
 
     if (demoMode) {
       const localUrl = docFile ? URL.createObjectURL(docFile) : undefined;
       const newRow: ResourceRow = {
         id: `demo-doc-${Date.now()}`,
-        kind: activeSection === 'normative' ? 'normative' : activeSection === 'guides' ? 'guide' : 'method',
+        kind: activeSection === 'normative' ? 'normative' : activeSection === 'guides' ? 'guide' : activeSection === 'ebbk' ? 'ebbk' : 'method',
         title: titleKk,
         ruTitle: titleRu,
         summary: docSummaryKk || docSummaryRu,
@@ -1758,7 +1786,7 @@ function SectionContent({
       if (match) {
         setSelectedResource({
           id: match.id,
-          kind: match.kind === 'NORMATIVE' ? 'normative' : match.kind === 'TEACHER_GUIDE' ? 'guide' : 'method',
+          kind: match.category.startsWith('ЕББҚ') ? 'ebbk' : match.kind === 'NORMATIVE' ? 'normative' : match.kind === 'TEACHER_GUIDE' ? 'guide' : 'method',
           title: match.titleKk,
           ruTitle: match.titleRu,
           summary: match.summaryKk ?? match.summaryRu ?? '',
@@ -1818,7 +1846,7 @@ function SectionContent({
         setSelectedResource({
           id: match.id,
           createdById: match.createdById,
-          kind: match.kind === 'NORMATIVE' ? 'normative' : match.kind === 'TEACHER_GUIDE' ? 'guide' : 'method',
+          kind: match.category.startsWith('ЕББҚ') ? 'ebbk' : match.kind === 'NORMATIVE' ? 'normative' : match.kind === 'TEACHER_GUIDE' ? 'guide' : 'method',
           title: match.titleKk,
           ruTitle: match.titleRu,
           summary: match.summaryKk ?? match.summaryRu ?? '',
@@ -2089,9 +2117,11 @@ function SectionContent({
               <Button variant="contained" startIcon={<AddRounded />} onClick={openStudentDialog}>{t.addStudent}</Button>
             </>
           )}
-          {['normative', 'guides', 'library'].includes(activeSection) && canUploadResource && (
+          {['normative', 'guides', 'library', 'ebbk'].includes(activeSection) && canUploadResource && (
             <Button variant="contained" startIcon={<UploadFileRounded />} onClick={() => setDocDialogOpen(true)}>
-              {language === 'kk' ? 'Құжат жүктеу (PDF / DOC)' : 'Загрузить документ (PDF / DOC)'}
+              {activeSection === 'ebbk'
+                ? (language === 'kk' ? 'Диагноз ерекшелігі мен құжат қосу' : 'Добавить особенность по диагнозу и документ')
+                : (language === 'kk' ? 'Құжат жүктеу (PDF / DOC)' : 'Загрузить документ (PDF / DOC)')}
             </Button>
           )}
           {activeSection === 'metrics' && role !== 'admin' && (role === 'teacher' || role === 'defectologist') && (
@@ -2625,8 +2655,8 @@ function SectionContent({
         </div>
       )}
 
-      {/* TABS 1, 3, 7: NORMATIVE DOCUMENTS, TEACHER GUIDES, METHODICAL LIBRARY */}
-      {['normative', 'guides', 'library'].includes(activeSection) && (
+      {/* TABS 1, 3, 7, EBBK: NORMATIVE DOCUMENTS, TEACHER GUIDES, METHODICAL LIBRARY, SPECIAL NEEDS (ЕББҚ) */}
+      {['normative', 'guides', 'library', 'ebbk'].includes(activeSection) && (
         <>
           <div className="filter-bar">
             <TextField
@@ -2636,65 +2666,136 @@ function SectionContent({
               placeholder={`${t.search}...`}
               InputProps={{ startAdornment: <SearchRounded className="search-start" /> }}
             />
-            <Chip label={activeSection === 'normative' ? 'PDF · DOC · Нормативтік база' : language === 'kk' ? 'PDF · Бейімдеу материалдары' : 'PDF · Методические материалы'} />
+            <Chip
+              label={
+                activeSection === 'ebbk'
+                  ? (language === 'kk' ? 'Нозология · Дәреже · Бейімдеу құжаттары' : 'Нозология · Степень · Документы адаптации')
+                  : activeSection === 'normative'
+                    ? 'PDF · DOC · Нормативтік база'
+                    : language === 'kk'
+                      ? 'PDF · Бейімдеу материалдары'
+                      : 'PDF · Методические материалы'
+              }
+            />
           </div>
+
+          {activeSection === 'ebbk' && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+              {[
+                { key: 'all', kk: 'Барлық диагноздар мен ерекшеліктер', ru: 'Все диагнозы и особенности' },
+                { key: 'vision', kk: 'Көру қабілеті (Нашар көретіндер · І–ІІІ дәреже)', ru: 'Нарушения зрения (Слабовидящие · I–III ст.)' },
+                { key: 'hearing', kk: 'Есту қабілеті (Нашар еститіндер · І–ІV дәреже)', ru: 'Нарушения слуха (Слабослышащие · I–IV ст.)' },
+                { key: 'motor', kk: 'Тірек-қимыл аппараты (ТҚА / НОДА)', ru: 'Опорно-двигательный аппарат (НОДА)' },
+                { key: 'speech', kk: 'Сөйлеу тілі және АСБ (РАС)', ru: 'Речь и коммуникация (РАС)' },
+                { key: 'cognitive', kk: 'Танымдық процестер (ПДТ / ЗПР)', ru: 'Познавательные процессы (ЗПР)' },
+              ].map((cat) => (
+                <Chip
+                  key={cat.key}
+                  label={language === 'kk' ? cat.kk : cat.ru}
+                  color={ebbkFilter === cat.key ? 'primary' : 'default'}
+                  variant={ebbkFilter === cat.key ? 'filled' : 'outlined'}
+                  onClick={() => setEbbkFilter(cat.key)}
+                  clickable
+                />
+              ))}
+            </div>
+          )}
+
           <div className="resource-grid">
-            {filteredResources.map((item) => (
-              <Paper className="resource-card" key={item.id} elevation={0}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div className="resource-icon"><DescriptionRounded /></div>
-                  <Chip
-                    size="small"
-                    color={item.files.length > 0 || item.localUrl ? 'primary' : 'default'}
-                    variant="outlined"
-                    label={item.files.length > 0 ? `${item.files[0].originalName.split('.').pop()?.toUpperCase() ?? 'PDF'}` : 'PDF'}
-                  />
-                </div>
-                <span className="resource-category">{item.category}</span>
-                <h2>{language === 'kk' ? item.title : item.ruTitle}</h2>
-                <p>{language === 'kk' ? item.summary : item.ruSummary}</p>
-                <div className="resource-footer">
-                  <time>{item.date}</time>
-                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                    {canManageResource(item) && (
-                      <Tooltip title={language === 'kk' ? 'Құжатты өшіру' : 'Удалить документ'}>
-                        <IconButton
+            {filteredResources.map((item) => {
+              const rawCat = item.category.replace(/^ЕББҚ\s*·\s*/i, '');
+              const [diagnosisGroup, degreeBadge] = rawCat.includes('|')
+                ? rawCat.split('|').map((s) => s.trim())
+                : [rawCat, ''];
+              return (
+                <Paper className="resource-card" key={item.id} elevation={0}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <div className="resource-icon">
+                      {activeSection === 'ebbk' ? <AccessibilityNewRounded /> : <DescriptionRounded />}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                      {activeSection === 'ebbk' && degreeBadge && (
+                        <Chip
                           size="small"
-                          color="error"
-                          onClick={() => void handleDeleteResource(item)}
-                        >
-                          <DeleteOutlineRounded fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                    {item.files[0] && !demoMode && (
-                      <Tooltip title={language === 'kk' ? 'Жүктеп алу' : 'Скачать файл'}>
-                        <IconButton
-                          size="small"
-                          component="a"
-                          href={getLibraryFileUrl(item.files[0].id, true)}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <FileDownloadRounded fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<VisibilityRounded />}
-                      onClick={() => {
-                        setSelectedResource(item);
-                        setSelectedFileIndex(0);
-                      }}
-                    >
-                      {language === 'kk' ? 'Қарау' : 'Просмотр'}
-                    </Button>
+                          color="secondary"
+                          label={degreeBadge}
+                          style={{ fontWeight: 600 }}
+                        />
+                      )}
+                      <Chip
+                        size="small"
+                        color={item.files.length > 0 || item.localUrl ? 'primary' : 'default'}
+                        variant="outlined"
+                        label={item.files.length > 0 ? `${item.files[0].originalName.split('.').pop()?.toUpperCase() ?? 'PDF'} (${item.files.length})` : 'PDF'}
+                      />
+                    </div>
                   </div>
-                </div>
-              </Paper>
-            ))}
+                  <span className="resource-category">{activeSection === 'ebbk' ? diagnosisGroup : item.category}</span>
+                  <h2>{language === 'kk' ? item.title : item.ruTitle}</h2>
+                  <p style={{ whiteSpace: 'pre-line' }}>{language === 'kk' ? item.summary : item.ruSummary}</p>
+                  <div className="resource-footer">
+                    <time>{item.date}</time>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+                      {canUploadResource && (
+                        <Tooltip title={language === 'kk' ? 'Құжат / файл тіркеу' : 'Прикрепить документ'}>
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            component="label"
+                          >
+                            <UploadFileRounded fontSize="small" />
+                            <input
+                              type="file"
+                              hidden
+                              accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt"
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (f) void handleAttachFileToExisting(item, f);
+                              }}
+                            />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {canManageResource(item) && (
+                        <Tooltip title={language === 'kk' ? 'Құжатты өшіру' : 'Удалить документ'}>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => void handleDeleteResource(item)}
+                          >
+                            <DeleteOutlineRounded fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {item.files[0] && !demoMode && (
+                        <Tooltip title={language === 'kk' ? 'Жүктеп алу' : 'Скачать файл'}>
+                          <IconButton
+                            size="small"
+                            component="a"
+                            href={getLibraryFileUrl(item.files[0].id, true)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <FileDownloadRounded fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<VisibilityRounded />}
+                        onClick={() => {
+                          setSelectedResource(item);
+                          setSelectedFileIndex(0);
+                        }}
+                      >
+                        {language === 'kk' ? 'Қарау' : 'Просмотр'}
+                      </Button>
+                    </div>
+                  </div>
+                </Paper>
+              );
+            })}
           </div>
           {filteredResources.length === 0 && <p className="empty-state">{t.emptySearch}</p>}
         </>
@@ -2938,48 +3039,98 @@ function SectionContent({
       <Dialog open={docDialogOpen} onClose={() => setDocDialogOpen(false)} fullWidth maxWidth="sm">
         <form onSubmit={handleCreateDocument}>
           <DialogTitle>
-            {language === 'kk' ? 'Жаңа құжат немесе материал жүктеу' : 'Загрузка нового документа или материала'}
+            {activeSection === 'ebbk'
+              ? (language === 'kk' ? 'Диагноз бойынша студент ерекшелігі мен құжат қосу' : 'Добавить особенности студентов по диагнозу и прикрепить документ')
+              : (language === 'kk' ? 'Жаңа құжат немесе материал жүктеу' : 'Загрузка нового документа или материала')}
           </DialogTitle>
           <DialogContent className="dialog-fields">
+            {activeSection === 'ebbk' ? (
+              <>
+                <TextField
+                  select
+                  label={language === 'kk' ? 'Диагноз / Нозология санаты' : 'Диагноз / Категория особенностей'}
+                  value={ebbkDiagnosis}
+                  onChange={(e) => setEbbkDiagnosis(e.target.value)}
+                  required
+                  fullWidth
+                >
+                  <MenuItem value="Көру қабілеті бұзылған (Нашар көретіндер / Слабовидящие)">
+                    {language === 'kk' ? 'Көру қабілеті бұзылған (Нашар көретіндер)' : 'Нарушения зрения (Слабовидящие)'}
+                  </MenuItem>
+                  <MenuItem value="Есту қабілеті бұзылған (Нашар еститіндер / Слабослышащие)">
+                    {language === 'kk' ? 'Есту қабілеті бұзылған (Нашар еститіндер)' : 'Нарушения слуха (Слабослышащие)'}
+                  </MenuItem>
+                  <MenuItem value="Тірек-қимыл аппараты бұзылған (ТҚА / НОДА)">
+                    {language === 'kk' ? 'Тірек-қимыл аппараты бұзылған (ТҚА)' : 'Нарушения опорно-двигательного аппарата (НОДА)'}
+                  </MenuItem>
+                  <MenuItem value="Сөйлеу тілі және коммуникация (АСБ / РАС)">
+                    {language === 'kk' ? 'Сөйлеу тілі және аутизм спектрі (АСБ)' : 'Нарушения речи и аутистического спектра (РАС)'}
+                  </MenuItem>
+                  <MenuItem value="Танымдық процестер ерекшеліктері (ПДТ / ЗПР)">
+                    {language === 'kk' ? 'Танымдық процестер мен зейін (ПДТ)' : 'Особенности познавательных процессов (ЗПР)'}
+                  </MenuItem>
+                  <MenuItem value="Басқа ерекше білім беру қажеттіліктері (ЕББҚ)">
+                    {language === 'kk' ? 'Басқа ерекше қажеттіліктер' : 'Другие особые образовательные потребности'}
+                  </MenuItem>
+                </TextField>
+                <TextField
+                  label={language === 'kk' ? 'Дәрежесі (мысалы: І дәреже, ІІ дәреже, ІІІ дәреже, Орташа)' : 'Степень (например: I степень, II степень, III степень, Средняя)'}
+                  value={ebbkDegree}
+                  onChange={(e) => setEbbkDegree(e.target.value)}
+                  placeholder={language === 'kk' ? 'І, ІІ, ІІІ дәреже' : 'I, II, III степень'}
+                  required
+                  fullWidth
+                />
+              </>
+            ) : (
+              <TextField
+                label={language === 'kk' ? 'Санат (мысалы: Бұйрық, Чек-парақ, Нұсқаулық)' : 'Категория (например: Приказ, Чек-лист, Инструкция)'}
+                value={docCategory}
+                onChange={(e) => setDocCategory(e.target.value)}
+                required
+                fullWidth
+              />
+            )}
             <TextField
-              label={language === 'kk' ? 'Санат (мысалы: Бұйрық, Чек-парақ, Нұсқаулық)' : 'Категория (например: Приказ, Чек-лист, Инструкция)'}
-              value={docCategory}
-              onChange={(e) => setDocCategory(e.target.value)}
-              required
-              fullWidth
-            />
-            <TextField
-              label={language === 'kk' ? 'Атауы (Қазақша)' : 'Название (на казахском)'}
+              label={language === 'kk' ? 'Тақырыбы / Атауы (Қазақша)' : 'Заголовок / Название (на казахском)'}
               value={docTitleKk}
               onChange={(e) => setDocTitleKk(e.target.value)}
               required
               fullWidth
             />
             <TextField
-              label={language === 'kk' ? 'Атауы (Орысша)' : 'Название (на русском)'}
+              label={language === 'kk' ? 'Тақырыбы / Атауы (Орысша)' : 'Заголовок / Название (на русском)'}
               value={docTitleRu}
               onChange={(e) => setDocTitleRu(e.target.value)}
               required
               fullWidth
             />
             <TextField
-              label={language === 'kk' ? 'Қысқаша сипаттамасы (Қазақша)' : 'Краткое описание (на казахском)'}
+              label={
+                activeSection === 'ebbk'
+                  ? (language === 'kk' ? 'Студенттердің ерекшеліктері мен оқытушыға ұсынымдар (Қазақша)' : 'Особенности студентов и рекомендации по степеням (на казахском)')
+                  : (language === 'kk' ? 'Қысқаша сипаттамасы (Қазақша)' : 'Краткое описание (на казахском)')
+              }
               value={docSummaryKk}
               onChange={(e) => setDocSummaryKk(e.target.value)}
               multiline
-              rows={2}
+              rows={activeSection === 'ebbk' ? 3 : 2}
               fullWidth
             />
             <TextField
-              label={language === 'kk' ? 'Қысқаша сипаттамасы (Орысша)' : 'Краткое описание (на русском)'}
+              label={
+                activeSection === 'ebbk'
+                  ? (language === 'kk' ? 'Студенттердің ерекшеліктері мен оқытушыға ұсынымдар (Орысша)' : 'Особенности студентов и рекомендации по степеням (на русском)')
+                  : (language === 'kk' ? 'Қысқаша сипаттамасы (Орысша)' : 'Краткое описание (на русском)')
+              }
               value={docSummaryRu}
               onChange={(e) => setDocSummaryRu(e.target.value)}
               multiline
-              rows={2}
+              rows={activeSection === 'ebbk' ? 3 : 2}
               fullWidth
             />
             <Button component="label" variant="outlined" startIcon={<UploadFileRounded />} fullWidth>
-              {docFile ? `${docFile.name} (${Math.round(docFile.size / 1024)} KB)` : (language === 'kk' ? 'PDF, DOCX, PNG файлды таңдау' : 'Выбрать файл (PDF, DOCX, PNG)')}
+              {docFile ? `${docFile.name} (${Math.round(docFile.size / 1024)} KB)` : (language === 'kk' ? 'Құжатты тіркеу (PDF, DOCX, PNG)' : 'Прикрепить документ (PDF, DOCX, PNG)')}
               <input
                 type="file"
                 hidden
@@ -3399,6 +3550,7 @@ function sectionDescription(section: SectionKey, language: Language) {
   const kk: Partial<Record<SectionKey, string>> = {
     users: 'Жаңа мамандарды тіркеу, рөлдерді (Дефектолог, Оқытушы, Психолог, Әлеуметтік педагог, Әкімшілік) тағайындау және қолжетімділікті басқару.',
     students: 'Студенттердің жеке оқу мақсаттарын, қолдау шараларын, педагогикалық бақылауларын және маман ұсынымдарын жүргізу.',
+    ebbk: 'Диагноз бен бұзылыс дәрежесіне (нашар көретіндер І–ІІІ дәреже, нашар еститіндер І–ІV дәреже, ТҚА, сөйлеу тілі және т.б.) байланысты студенттердің білім алу ерекшеліктері және тіркелген құжаттар.',
     normative: 'Инклюзивті білім беру бойынша заңдар, бұйрықтар және колледждің ішкі құжаттарын PDF түрінде іздеу, жүктеу және қарау.',
     guides: 'Тапсырманы кезеңдеу, визуалды тіректер және баламалы бағалау бойынша педагогтерге арналған практикалық нұсқаулықтар.',
     metrics: 'Жеке оқу мақсаттары бойынша бастапқы және қайта бағалау динамикасын салыстыру.',
@@ -3410,6 +3562,7 @@ function sectionDescription(section: SectionKey, language: Language) {
   const ru: Partial<Record<SectionKey, string>> = {
     users: 'Создание учётных записей сотрудников, назначение и смена ролей (Дефектолог, Преподаватель, Психолог, Социальный педагог, Администрация) и управление доступом.',
     students: 'Личные учебные цели, меры поддержки, педагогические наблюдения и рекомендации специалистов по студентам.',
+    ebbk: 'Особенности обучения студентов в зависимости от диагноза и степени (слабовидящие I–III ст., слабослышащие I–IV ст., нарушения ОДА, речь и др.) с возможностью прикрепления и просмотра документов.',
     normative: 'Поиск, загрузка и встроенный просмотр PDF нормативных документов, приказов и внутренних положений колледжа.',
     guides: 'Практические инструкции для педагогов по делению заданий на этапы, визуальным опорам и альтернативному оцениванию.',
     metrics: 'Сравнение первичной и повторной оценки достижения индивидуальных учебных целей.',

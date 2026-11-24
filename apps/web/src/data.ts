@@ -1,5 +1,5 @@
 export type Role = 'defectologist' | 'teacher' | 'psychologist' | 'social' | 'admin';
-export type SectionKey = 'home' | 'normative' | 'students' | 'guides' | 'metrics' | 'plans' | 'collaboration' | 'library' | 'reports' | 'users';
+export type SectionKey = 'home' | 'normative' | 'students' | 'ebbk' | 'guides' | 'metrics' | 'plans' | 'collaboration' | 'library' | 'reports' | 'users';
 
 export const roleLabels: Record<Role, { kk: string; ru: string }> = {
   defectologist: { kk: 'Дефектолог', ru: 'Дефектолог' },
@@ -14,6 +14,7 @@ export const navigation: { key: SectionKey; label: string; icon: string }[] = [
   { key: 'users', label: 'users', icon: 'manage_accounts' },
   { key: 'normative', label: 'normative', icon: 'description' },
   { key: 'students', label: 'students', icon: 'groups' },
+  { key: 'ebbk', label: 'ebbk', icon: 'accessibility' },
   { key: 'guides', label: 'guides', icon: 'menu_book' },
   { key: 'metrics', label: 'metrics', icon: 'bar_chart' },
   { key: 'collaboration', label: 'collaboration', icon: 'hub' },
@@ -22,11 +23,11 @@ export const navigation: { key: SectionKey; label: string; icon: string }[] = [
 ];
 
 export const permissions: Record<Role, SectionKey[]> = {
-  defectologist: ['home', 'normative', 'students', 'guides', 'metrics', 'collaboration', 'library', 'reports'],
-  teacher: ['home', 'normative', 'students', 'guides', 'metrics', 'collaboration', 'library', 'reports'],
-  psychologist: ['home', 'normative', 'students', 'metrics', 'collaboration', 'library', 'reports'],
-  social: ['home', 'normative', 'students', 'metrics', 'collaboration', 'library', 'reports'],
-  admin: ['home', 'users', 'normative', 'guides', 'metrics', 'library', 'reports'],
+  defectologist: ['home', 'normative', 'students', 'ebbk', 'guides', 'metrics', 'collaboration', 'library', 'reports'],
+  teacher: ['home', 'normative', 'students', 'ebbk', 'guides', 'metrics', 'collaboration', 'library', 'reports'],
+  psychologist: ['home', 'normative', 'students', 'ebbk', 'metrics', 'collaboration', 'library', 'reports'],
+  social: ['home', 'normative', 'students', 'ebbk', 'metrics', 'collaboration', 'library', 'reports'],
+  admin: ['home', 'users', 'normative', 'ebbk', 'guides', 'metrics', 'library', 'reports'],
 };
 
 export const student = {
@@ -51,6 +52,10 @@ export const resourceItems = [
   { kind: 'guide', title: 'Визуалды тіректерді қолдану', ruTitle: 'Использование визуальных опор', summary: 'Сызбалар, карточкалар және үлгі арқылы оқу материалын түсіндіру.', category: 'Әдістемелік ұсыным', date: '17.11.2026' },
   { kind: 'method', title: 'Баламалы бағалау чек-парағы', ruTitle: 'Чек-лист альтернативного оценивания', summary: 'Оқу мақсатына сай қолжетімді бағалау тәсілін таңдау.', category: 'Чек-парақ', date: '15.11.2026' },
   { kind: 'method', title: 'Практикалық тапсырма үлгісі', ruTitle: 'Шаблон практического задания', summary: 'Кәсіптік пәндегі тапсырманы кезең-кезеңімен ұсынуға арналған үлгі.', category: 'Оқу материалы', date: '14.11.2026' },
+  { kind: 'ebbk', title: 'Көру қабілеті бұзылған студенттермен жұмыс (І, ІІ, ІІІ дәреже)', ruTitle: 'Особенности обучения слабовидящих студентов (I, II, III степень)', summary: 'Көру өткірлігінің төмендеу дәрежесіне қарай шрифт өлшемін (16–20 pt), жоғары контрастты сұлбаларды, қосымша жарықтандыруды және аудио-тіректерді қолдану ережелері.', category: 'ЕББҚ · Көру қабілеті бұзылған (Нашар көретіндер) | І–ІІІ дәреже', date: '24.11.2026' },
+  { kind: 'ebbk', title: 'Есту қабілеті бұзылған студенттердің ерекшеліктері (І–ІV дәреже)', ruTitle: 'Особенности работы со слабослышащими студентами (I–IV степень тугоухости)', summary: 'Алдыңғы қатарға отырғызу, визуалды презентациялар, субтитрлер, жазбаша алгоритмдер мен артикуляцияға назар аудару арқылы оқу процесін бейімдеу.', category: 'ЕББҚ · Есту қабілеті бұзылған (Нашар еститіндер) | І–ІV дәреже', date: '24.11.2026' },
+  { kind: 'ebbk', title: 'Тірек-қимыл аппараты (ТҚА) бұзылған студенттерге жағдай жасау', ruTitle: 'Адаптация учебного процесса при нарушениях ОДА (лёгкая, средняя, тяжёлая степень)', summary: 'Жұмыс орнының эргономикасы, зертханалық және практикалық жұмыстарда уақытты ұзарту, ұсақ моторика қиындықтары кезінде цифрлық тренажерларды қолдану.', category: 'ЕББҚ · Тірек-қимыл аппараты (ТҚА / НОДА) | Жеңіл / Орташа / Ауыр дәреже', date: '24.11.2026' },
+  { kind: 'ebbk', title: 'Сөйлеу тілі және аутизм спектрі (АСБ / РАС) ерекшеліктері', ruTitle: 'Речевые особенности и расстройства аутистического спектра (РАС)', summary: 'Сенсорлық жүктемені азайту, нақты құрылымдалған сабақ жоспары, ауызша жауапты жазбаша немесе тест түріндегі баламалы бағалаумен алмастыру.', category: 'ЕББҚ · Сөйлеу тілі және коммуникация (АСБ / РАС) | Жеке бейімдеу', date: '24.11.2026' },
 ];
 
 export const initialPlanActions = [
