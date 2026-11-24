@@ -67,6 +67,17 @@ function serializeFile(file: {
 export class LibraryController {
   constructor(private readonly prisma: PrismaService, private readonly access: AccessService) {
     ensureStorageDir();
+    void this.ensureDatabaseBlobColumn();
+  }
+
+  private async ensureDatabaseBlobColumn() {
+    try {
+      await this.prisma.$executeRawUnsafe(
+        'ALTER TABLE `library_files` ADD COLUMN `content_blob` LONGBLOB NULL',
+      );
+    } catch {
+      /* Column already exists */
+    }
   }
 
   @Get()
@@ -211,6 +222,15 @@ export class LibraryController {
         checksum,
       },
     });
+    try {
+      await this.prisma.$executeRawUnsafe(
+        'UPDATE `library_files` SET `content_blob` = ? WHERE `id` = ?',
+        file.buffer,
+        saved.id,
+      );
+    } catch {
+      /* ignore if column not ready */
+    }
     return serializeFile(saved);
   }
 
@@ -227,7 +247,22 @@ export class LibraryController {
       include: { item: true },
     });
     if (!file) throw new NotFoundException('Файл не найден');
+    ensureStorageDir();
     const targetPath = join(STORAGE_DIR, file.objectKey);
+    if (!existsSync(targetPath)) {
+      try {
+        const rows = await this.prisma.$queryRawUnsafe<{ content_blob: Buffer | Uint8Array | null }[]>(
+          'SELECT `content_blob` FROM `library_files` WHERE `id` = ? LIMIT 1',
+          file.id,
+        );
+        const blob = rows?.[0]?.content_blob;
+        if (blob) {
+          writeFileSync(targetPath, Buffer.from(blob));
+        }
+      } catch {
+        /* ignore */
+      }
+    }
     if (!existsSync(targetPath)) {
       throw new NotFoundException('Физический файл отсутствует на сервере');
     }
