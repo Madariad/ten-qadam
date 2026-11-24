@@ -95,104 +95,205 @@ async function main() {
     return;
   }
 
-  const specialty = await prisma.specialty.upsert({
-    where: { institutionId_code: { institutionId: institution.id, code: 'ЭЖ' } },
-    update: { nameKk: 'Электрмен жабдықтау', nameRu: 'Электроснабжение' },
-    create: { institutionId: institution.id, code: 'ЭЖ', nameKk: 'Электрмен жабдықтау', nameRu: 'Электроснабжение' },
+  const specSW = await prisma.specialty.upsert({
+    where: { institutionId_code: { institutionId: institution.id, code: '06130100' } },
+    update: { nameKk: '06130100 Бағдарламалық қамтамасыздандыру', nameRu: '06130100 Программное обеспечение' },
+    create: { institutionId: institution.id, code: '06130100', nameKk: '06130100 Бағдарламалық қамтамасыздандыру', nameRu: '06130100 Программное обеспечение' },
   });
-  const specialty2 = await prisma.specialty.upsert({
-    where: { institutionId_code: { institutionId: institution.id, code: 'ТП' } },
-    update: { nameKk: 'Техникалық қызмет көрсету', nameRu: 'Техническое обслуживание' },
-    create: { institutionId: institution.id, code: 'ТП', nameKk: 'Техникалық қызмет көрсету', nameRu: 'Техническое обслуживание' },
+  const specGDWork = await prisma.specialty.upsert({
+    where: { institutionId_code: { institutionId: institution.id, code: '0211031' } },
+    update: { nameKk: '0211031 Графикалық жұмыстарды орындаушы', nameRu: '0211031 Исполнитель графических работ' },
+    create: { institutionId: institution.id, code: '0211031', nameKk: '0211031 Графикалық жұмыстарды орындаушы', nameRu: '0211031 Исполнитель графических работ' },
   });
-  const group = await prisma.studyGroup.upsert({
-    where: { institutionId_code_academicYear: { institutionId: institution.id, code: '3С-24', academicYear: '2026-2027' } },
-    update: { specialtyId: specialty.id },
-    create: { institutionId: institution.id, specialtyId: specialty.id, code: '3С-24', academicYear: '2026-2027' },
+  const specGDDesign = await prisma.specialty.upsert({
+    where: { institutionId_code: { institutionId: institution.id, code: '02110304' } },
+    update: { nameKk: '02110304 Графикалық дизайн', nameRu: '02110304 Графический дизайн' },
+    create: { institutionId: institution.id, code: '02110304', nameKk: '02110304 Графикалық дизайн', nameRu: '02110304 Графический дизайн' },
   });
-  const group2 = await prisma.studyGroup.upsert({
-    where: { institutionId_code_academicYear: { institutionId: institution.id, code: '2ТП-24', academicYear: '2026-2027' } },
-    update: { specialtyId: specialty2.id },
-    create: { institutionId: institution.id, specialtyId: specialty2.id, code: '2ТП-24', academicYear: '2026-2027' },
+
+  const groupSW611b = await prisma.studyGroup.upsert({
+    where: { institutionId_code_academicYear: { institutionId: institution.id, code: 'SW-611b', academicYear: '2026-2027' } },
+    update: { specialtyId: specSW.id },
+    create: { institutionId: institution.id, specialtyId: specSW.id, code: 'SW-611b', academicYear: '2026-2027' },
   });
+  const groupGD611b = await prisma.studyGroup.upsert({
+    where: { institutionId_code_academicYear: { institutionId: institution.id, code: 'GD-611b', academicYear: '2026-2027' } },
+    update: { specialtyId: specGDWork.id },
+    create: { institutionId: institution.id, specialtyId: specGDWork.id, code: 'GD-611b', academicYear: '2026-2027' },
+  });
+  const groupGD511b = await prisma.studyGroup.upsert({
+    where: { institutionId_code_academicYear: { institutionId: institution.id, code: 'GD-511b', academicYear: '2026-2027' } },
+    update: { specialtyId: specGDDesign.id },
+    create: { institutionId: institution.id, specialtyId: specGDDesign.id, code: 'GD-511b', academicYear: '2026-2027' },
+  });
+  const groupGD513b = await prisma.studyGroup.upsert({
+    where: { institutionId_code_academicYear: { institutionId: institution.id, code: 'GD-513b', academicYear: '2026-2027' } },
+    update: { specialtyId: specGDWork.id },
+    create: { institutionId: institution.id, specialtyId: specGDWork.id, code: 'GD-513b', academicYear: '2026-2027' },
+  });
+
   const subject = await prisma.subject.upsert({
     where: { institutionId_code: { institutionId: institution.id, code: 'PRACTICE' } },
-    update: { nameKk: 'Кәсіптік практика (Электртехника)', nameRu: 'Профессиональная практика (Электротехника)' },
-    create: { institutionId: institution.id, code: 'PRACTICE', nameKk: 'Кәсіптік практика (Электртехника)', nameRu: 'Профессиональная практика (Электротехника)' },
+    update: { nameKk: 'Кәсіптік практика және арнайы пәндер', nameRu: 'Профессиональная практика и спецдисциплины' },
+    create: { institutionId: institution.id, code: 'PRACTICE', nameKk: 'Кәсіптік практика және арнайы пәндер', nameRu: 'Профессиональная практика и спецдисциплины' },
   });
   await prisma.subject.upsert({
-    where: { institutionId_code: { institutionId: institution.id, code: 'AUTOMATION' } },
-    update: { nameKk: 'Автоматика негіздері', nameRu: 'Основы автоматики' },
-    create: { institutionId: institution.id, code: 'AUTOMATION', nameKk: 'Автоматика негіздері', nameRu: 'Основы автоматики' },
+    where: { institutionId_code: { institutionId: institution.id, code: 'IT-BASE' } },
+    update: { nameKk: 'Бағдарламалау және алгоритмдеу негіздері', nameRu: 'Основы программирования и алгоритмизации' },
+    create: { institutionId: institution.id, code: 'IT-BASE', nameKk: 'Бағдарламалау және алгоритмдеу негіздері', nameRu: 'Основы программирования и алгоритмизации' },
+  });
+  await prisma.subject.upsert({
+    where: { institutionId_code: { institutionId: institution.id, code: 'GRAPHIC-DESIGN' } },
+    update: { nameKk: 'Компьютерлік графика және дизайн', nameRu: 'Компьютерная графика и дизайн' },
+    create: { institutionId: institution.id, code: 'GRAPHIC-DESIGN', nameKk: 'Компьютерлік графика және дизайн', nameRu: 'Компьютерная графика и дизайн' },
   });
 
-  const demoStudent = await prisma.student.upsert({
-    where: { institutionId_studentCode: { institutionId: institution.id, studentCode: 'DEMO-ЭС-24-01' } },
-    update: { fullName: 'Серік Әлихан', groupId: group.id, status: 'ACTIVE', studentCode: 'ЭС-24-01' },
-    create: { institutionId: institution.id, studentCode: 'ЭС-24-01', fullName: 'Серік Әлихан', groupId: group.id },
-  }).catch(() => prisma.student.upsert({
-    where: { institutionId_studentCode: { institutionId: institution.id, studentCode: 'ЭС-24-01' } },
-    update: { fullName: 'Серік Әлихан', groupId: group.id, status: 'ACTIVE' },
-    create: { institutionId: institution.id, studentCode: 'ЭС-24-01', fullName: 'Серік Әлихан', groupId: group.id },
-  }));
-  const demoStudent2 = await prisma.student.upsert({
-    where: { institutionId_studentCode: { institutionId: institution.id, studentCode: 'DEMO-ТП-24-02' } },
-    update: { fullName: 'Айдана Марат', groupId: group2.id, status: 'ACTIVE', studentCode: 'ТП-24-02' },
-    create: { institutionId: institution.id, studentCode: 'ТП-24-02', fullName: 'Айдана Марат', groupId: group2.id },
-  }).catch(() => prisma.student.upsert({
-    where: { institutionId_studentCode: { institutionId: institution.id, studentCode: 'ТП-24-02' } },
-    update: { fullName: 'Айдана Марат', groupId: group2.id, status: 'ACTIVE' },
-    create: { institutionId: institution.id, studentCode: 'ТП-24-02', fullName: 'Айдана Марат', groupId: group2.id },
-  }));
+  // Remove old synthetic test records if present
+  await prisma.student.deleteMany({
+    where: {
+      institutionId: institution.id,
+      studentCode: { in: ['DEMO-ЭС-24-01', 'ЭС-24-01', 'DEMO-ТП-24-02', 'ТП-24-02'] },
+    },
+  }).catch(() => undefined);
 
   const demoAccounts = [
-    { login: 'demo-defectologist', name: 'Оспанова М.Қ.', role: 'DEFECTOLOGIST' as const, password: 'Defectolog2026!!' },
+    { login: 'demo-defectologist', name: 'Сағынбекова Қ.М.', role: 'DEFECTOLOGIST' as const, password: 'Defectolog2026!!' },
     { login: 'demo-teacher', name: 'Айдарова А.С.', role: 'SUBJECT_TEACHER' as const, password: 'Teacher2026Pass!' },
     { login: 'demo-psychologist', name: 'Нұрғалиева Д.Т.', role: 'PSYCHOLOGIST' as const, password: 'Psychologist2026!' },
     { login: 'demo-social', name: 'Қасымова Г.Е.', role: 'SOCIAL_PEDAGOG' as const, password: 'SocialPed2026Pass!' },
   ];
   const demoUsers = await Promise.all(demoAccounts.map((account) => getOrCreateDemoUser(institution.id, account.login, account.name, account.role, account.password)));
-  for (const user of demoUsers) {
-    await prisma.userStudentAssignment.upsert({
-      where: { id: `${user.id.slice(0, 8)}-${demoStudent.id.slice(0, 8)}-demo` },
-      update: { validUntil: null },
-      create: { id: `${user.id.slice(0, 8)}-${demoStudent.id.slice(0, 8)}-demo`, institutionId: institution.id, userId: user.id, studentId: demoStudent.id, subjectId: user.login === 'demo-teacher' ? subject.id : null, assignedById: user.id },
-    });
-    if (user.login !== 'demo-teacher') {
-      await prisma.userStudentAssignment.upsert({
-        where: { id: `${user.id.slice(0, 8)}-${demoStudent2.id.slice(0, 8)}-demo2` },
-        update: { validUntil: null },
-        create: { id: `${user.id.slice(0, 8)}-${demoStudent2.id.slice(0, 8)}-demo2`, institutionId: institution.id, userId: user.id, studentId: demoStudent2.id, subjectId: null, assignedById: user.id },
-      });
-    }
-  }
 
   const defectologist = await prisma.user.findFirst({ where: { institutionId: institution.id, login: 'demo-defectologist' } });
   const teacher = await prisma.user.findFirst({ where: { institutionId: institution.id, login: 'demo-teacher' } });
   const psychologist = await prisma.user.findFirst({ where: { institutionId: institution.id, login: 'demo-psychologist' } });
   const social = await prisma.user.findFirst({ where: { institutionId: institution.id, login: 'demo-social' } });
 
-  if (defectologist && teacher && psychologist && social) {
-    if ((await prisma.studentSupportProfile.count({ where: { institutionId: institution.id, studentId: demoStudent.id } })) === 0) {
-      await prisma.studentSupportProfile.createMany({
-        data: [
-          { institutionId: institution.id, studentId: demoStudent.id, createdById: defectologist.id, category: 'PEDAGOGICAL', description: 'Оқу материалын визуалды қолдаумен ұсыну, электр сұлбаларын оқу тапсырмаларын 3 шағын кезеңге бөлу.' },
-          { institutionId: institution.id, studentId: demoStudent.id, createdById: psychologist.id, category: 'PSYCHOLOGICAL', description: 'Практикалық жұмыс алдындағы мазасыздықты төмендету және оқу мотивациясын қолдау.' },
-          { institutionId: institution.id, studentId: demoStudent.id, createdById: social.id, category: 'SOCIAL', description: 'Оқу кестесі мен колледж ішіндегі бейімделу шараларын үйлестіру.' },
-        ],
+  const collegeStudentsList: {
+    code: string;
+    fullName: string;
+    course: number;
+    groupId: string;
+    diagnosis: string;
+  }[] = [
+    { code: 'SW-611-01', fullName: 'Алдаберген Ералы Дінсламұлы', course: 1, groupId: groupSW611b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы' },
+    { code: 'SW-611-02', fullName: 'Көпжасар Әскербек Әлібекұлы', course: 1, groupId: groupSW611b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы, ДЦП, Псевдобульбарная дизартрия. ОНР-3 уровня' },
+    { code: 'SW-611-03', fullName: 'Серікқанұлы Мирас', course: 1, groupId: groupSW611b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы, ДЦП, Псевдобульбарная дизартрия. ОНР-3 уровня' },
+    { code: 'SW-611-04', fullName: 'Есинбеков Темирлан', course: 1, groupId: groupSW611b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы' },
+    { code: 'GD-611-05', fullName: 'Ермекбай Айша', course: 1, groupId: groupGD611b.id, diagnosis: 'H60–H95 (Двухсторонняя нейросенсорная тугоухость I ст.)' },
+    { code: 'GD-611-06', fullName: 'Алтынбек Арафат', course: 1, groupId: groupGD611b.id, diagnosis: 'H60–H95 (Двухсторонняя нейросенсорная тугоухость I ст.)' },
+    { code: 'GD-611-07', fullName: 'Берик Мунарбек', course: 1, groupId: groupGD611b.id, diagnosis: 'H60–H95 (Двухсторонняя нейросенсорная тугоухость I ст.)' },
+    { code: 'GD-611-08', fullName: 'Шолпанбай Дулат', course: 1, groupId: groupGD611b.id, diagnosis: 'H60–H95 (Двухсторонняя нейросенсорная тугоухость I ст.)' },
+    { code: 'GD-611-09', fullName: 'Жумабай Бауыржан', course: 1, groupId: groupGD611b.id, diagnosis: 'H60–H95 (Двухсторонняя нейросенсорная тугоухость I ст.)' },
+    { code: 'GD-611-10', fullName: 'Сейсен Ансар', course: 1, groupId: groupGD611b.id, diagnosis: 'H60–H95 (Двухсторонняя нейросенсорная тугоухость I ст.)' },
+    { code: 'GD-611-11', fullName: 'Қалымбек Өктем', course: 1, groupId: groupGD611b.id, diagnosis: 'H60–H95 (Двухсторонняя нейросенсорная тугоухость I ст.)' },
+    { code: 'GD-611-12', fullName: 'Нурланулы Берик', course: 1, groupId: groupGD611b.id, diagnosis: 'H60–H95 (Двухсторонняя нейросенсорная тугоухость I ст.)' },
+    { code: 'GD-511-13', fullName: 'Амирханова Акерке Жасулановна', course: 2, groupId: groupGD511b.id, diagnosis: 'H60–H95 (Двухсторонняя нейросенсорная тугоухость I ст.)' },
+    { code: 'GD-511-14', fullName: 'Алдекен Айкумис Куаткызы', course: 2, groupId: groupGD511b.id, diagnosis: 'H60–H95 (Двухсторонняя нейросенсорная тугоухость I ст.)' },
+    { code: 'GD-511-15', fullName: 'Зейнеқабыл Алинұр Мухитұлы', course: 2, groupId: groupGD511b.id, diagnosis: 'H60–H95 (Двухсторонняя нейросенсорная тугоухость I ст.)' },
+    { code: 'GD-511-16', fullName: 'Майлау Аян Бақытұлы', course: 2, groupId: groupGD511b.id, diagnosis: 'H60–H95 (Двухсторонняя нейросенсорная тугоухость I ст.)' },
+    { code: 'GD-511-17', fullName: 'Наби Мадихан Мухтарұлы', course: 2, groupId: groupGD511b.id, diagnosis: 'H60–H95 (Двухсторонняя нейросенсорная тугоухость I ст.)' },
+    { code: 'GD-511-18', fullName: 'Толепбек Алижан Бахытжанұлы', course: 2, groupId: groupGD511b.id, diagnosis: 'H60–H95 (Двухсторонняя нейросенсорная тугоухость I ст.)' },
+    { code: 'GD-513-19', fullName: 'Шоқбай Еркебұлан Жолдыбекұлы', course: 2, groupId: groupGD513b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы, мінез-құлық бұзылыстары' },
+    { code: 'GD-513-20', fullName: 'Санатов Нурали Бейбитович', course: 2, groupId: groupGD513b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы' },
+    { code: 'GD-513-21', fullName: 'Жұмағали Елдар Құдайбергенұлы', course: 2, groupId: groupGD513b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы' },
+    { code: 'GD-513-22', fullName: 'Бақтыбай Икрам', course: 2, groupId: groupGD513b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы, ДЦП, спастическая диплегия тяжелой степени, Псевдобульбарная дизартрия. ОНР-3 уровня, ОИ-Атрофия зрительного нерва частичная, Гиперметрофический астигматизм' },
+    { code: 'GD-513-23', fullName: 'Жахан Диана', course: 2, groupId: groupGD513b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы' },
+    { code: 'GD-513-24', fullName: 'Мурманцев Ринат Евгеньевич', course: 2, groupId: groupGD513b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы' },
+    { code: 'GD-513-25', fullName: 'Әлдибек Аружан Ерғалиқызы', course: 2, groupId: groupGD513b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы' },
+    { code: 'GD-513-26', fullName: 'Апикова Маржан Ернатовна', course: 2, groupId: groupGD513b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы, ДЦП, ОНР-3 уровня, Псевдобульбарлы дизартрия' },
+    { code: 'GD-513-27', fullName: 'Нурдаулетов Дамир', course: 2, groupId: groupGD513b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы' },
+    { code: 'GD-513-28', fullName: 'Берікұлы Бекзат', course: 2, groupId: groupGD513b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы' },
+    { code: 'GD-513-29', fullName: 'Ниязова Гулима Мерденовна', course: 2, groupId: groupGD513b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы' },
+    { code: 'GD-513-30', fullName: 'Хаджиева Зара Рамазановна', course: 2, groupId: groupGD513b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы' },
+    { code: 'GD-513-31', fullName: 'Лищенко Олег Сергеевич', course: 2, groupId: groupGD513b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы' },
+    { code: 'GD-513-32', fullName: 'Акмурзан Темірлан Нұрланұлы', course: 2, groupId: groupGD513b.id, diagnosis: 'Жеңіл түрдегі зияттың бұзылуы' },
+  ];
+
+  const createdStudents = [];
+  for (const row of collegeStudentsList) {
+    const st = await prisma.student.upsert({
+      where: { institutionId_studentCode: { institutionId: institution.id, studentCode: row.code } },
+      update: { fullName: row.fullName, groupId: row.groupId, status: 'ACTIVE' },
+      create: { institutionId: institution.id, studentCode: row.code, fullName: row.fullName, groupId: row.groupId },
+    });
+    createdStudents.push({ record: st, meta: row });
+
+    for (const user of demoUsers) {
+      const assignId = `${user.id.slice(0, 8)}-${st.id.slice(0, 8)}-asgn`;
+      await prisma.userStudentAssignment.upsert({
+        where: { id: assignId },
+        update: { validUntil: null },
+        create: {
+          id: assignId,
+          institutionId: institution.id,
+          userId: user.id,
+          studentId: st.id,
+          subjectId: user.login === 'demo-teacher' ? subject.id : null,
+          assignedById: defectologist?.id ?? user.id,
+        },
       });
     }
 
-    const goal = await prisma.learningGoal.findFirst({ where: { institutionId: institution.id, studentId: demoStudent.id, titleKk: 'Шартты белгілерді тану' } });
+    if (defectologist && psychologist && social) {
+      const existingProfiles = await prisma.studentSupportProfile.count({
+        where: { institutionId: institution.id, studentId: st.id },
+      });
+      if (existingProfiles === 0) {
+        const isHearing = row.diagnosis.includes('H60') || row.diagnosis.includes('тугоухость');
+        const isMotorOrSpeech = row.diagnosis.includes('ДЦП') || row.diagnosis.includes('дизартрия');
+        const isVision = row.diagnosis.includes('зрительного');
+        let pedRecommendation = 'Тапсырманы шағын кезеңдерге бөліп ұсыну, тірек сызбалар мен үлгілерді қолдану.';
+        if (isHearing) {
+          pedRecommendation = 'Алдыңғы қатарға (1–2 парта) отырғызу, визуалды презентациялар, жазбаша алгоритмдер мен субтитрлерді қолдану.';
+        } else if (isMotorOrSpeech && isVision) {
+          pedRecommendation = 'Жоғары контрастты ірілендірілген материалдар (18–20 pt), жұмыс орнын бейімдеу, жазбаша/практикалық тапсырма уақытын ұзарту.';
+        } else if (isMotorOrSpeech) {
+          pedRecommendation = 'Практикалық жұмыс уақытын ұзарту, ауызша жауапты жазбаша немесе компьютерлік демонстрациямен алмастыру, қадамдық чек-парақ беру.';
+        }
+
+        await prisma.studentSupportProfile.createMany({
+          data: [
+            {
+              institutionId: institution.id,
+              studentId: st.id,
+              createdById: defectologist.id,
+              category: 'PEDAGOGICAL',
+              description: `${row.course}-курс · Ерекшелігі / Диагнозы: ${row.diagnosis}. Ұсыным: ${pedRecommendation}`,
+            },
+            {
+              institutionId: institution.id,
+              studentId: st.id,
+              createdById: psychologist.id,
+              category: 'PSYCHOLOGICAL',
+              description: 'Оқу мотивациясын қолдау, эмоционалдық жайлылық пен топ ішіндегі бейімделуін бақылау.',
+            },
+            {
+              institutionId: institution.id,
+              studentId: st.id,
+              createdById: social.id,
+              category: 'SOCIAL',
+              description: `${row.course}-курс студентін әлеуметтік-педагогикалық сүйемелдеу және сабаққа қатысуын үйлестіру.`,
+            },
+          ],
+        });
+      }
+    }
+  }
+
+  const demoStudent = createdStudents[0].record;
+
+  if (defectologist && teacher && psychologist && social) {
+    const goal = await prisma.learningGoal.findFirst({ where: { institutionId: institution.id, studentId: demoStudent.id } });
     const learningGoal = goal ?? await prisma.learningGoal.create({
       data: {
         institutionId: institution.id,
         studentId: demoStudent.id,
         subjectId: subject.id,
         ownerId: defectologist.id,
-        titleKk: 'Шартты белгілерді тану',
-        titleRu: 'Распознавание условных обозначений',
-        successCriteria: 'Оқу схемасындағы шартты белгілерді атайды және сәйкестендіреді.',
+        titleKk: 'Алгоритмдік блок-схемалар мен базалық код құрылымын орындау',
+        titleRu: 'Построение алгоритмических блок-схем и базовой структуры кода',
+        successCriteria: 'Үлгі және визуалды чек-парақ бойынша 3 қадамнан тұратын практикалық тапсырманы дербес орындайды.',
         status: 'ACTIVE',
       },
     });
@@ -206,16 +307,12 @@ async function main() {
           subjectId: subject.id,
           authorId: teacher.id,
           observedAt: new Date('2026-11-16T09:30:00Z'),
-          context: 'Электртехника сабағы · Электр сұлбасын оқу',
-          observationText: 'Студент электр схемасын тұтас оқу тапсырмасында қиналады, шартты белгілерді шатастырады. Кезеңдік тірек қажет.',
+          context: 'Бағдарламалау негіздері · Практикалық жұмыс',
+          observationText: 'Студент көлемді тапсырманы бірден орындауда қиналады. Тапсырманы 3 шағын қадамға бөліп, визуалды үлгі бергенде жұмыс қарқыны жақсарады.',
         },
       });
     }
 
-    await prisma.supportPlan.updateMany({
-      where: { institutionId: institution.id, studentId: demoStudent.id, title: 'Қолдау жоспары · DEMO' },
-      data: { title: 'Жеке қолдау жоспары · 2026–2027' },
-    });
     let plan = await prisma.supportPlan.findFirst({ where: { institutionId: institution.id, studentId: demoStudent.id } });
     if (!plan) {
       plan = await prisma.supportPlan.create({
@@ -233,7 +330,7 @@ async function main() {
       await prisma.supportPlanAction.createMany({
         data: [
           { planId: plan.id, goalId: learningGoal.id, responsibleId: teacher.id, titleKk: 'Практикалық тапсырманы 3 қадамға бөлу', titleRu: 'Разделить практическое задание на 3 шага', status: 'COMPLETED', completedAt: new Date('2026-11-18T10:00:00Z'), dueAt: new Date('2026-11-20T00:00:00Z') },
-          { planId: plan.id, goalId: learningGoal.id, responsibleId: defectologist.id, titleKk: 'Шартты белгілер карточкаларын дайындау', titleRu: 'Подготовить карточки с условными обозначениями', status: 'IN_PROGRESS', dueAt: new Date('2026-11-23T00:00:00Z') },
+          { planId: plan.id, goalId: learningGoal.id, responsibleId: defectologist.id, titleKk: 'Визуалды алгоритм карточкаларын дайындау', titleRu: 'Подготовить карточки с визуальным алгоритмом', status: 'IN_PROGRESS', dueAt: new Date('2026-11-23T00:00:00Z') },
           { planId: plan.id, goalId: learningGoal.id, responsibleId: teacher.id, titleKk: 'Қайта бағалау өткізу', titleRu: 'Провести повторную оценку', status: 'PLANNED', dueAt: new Date('2026-11-26T00:00:00Z') },
           { planId: plan.id, goalId: null, responsibleId: psychologist.id, titleKk: 'Оқу мотивациясына қысқа тренинг', titleRu: 'Короткий тренинг учебной мотивации', status: 'PLANNED', dueAt: new Date('2026-11-27T00:00:00Z') },
         ],
@@ -252,10 +349,10 @@ async function main() {
           goalId: learningGoal.id,
           authorId: defectologist.id,
           domain: 'DEFECTOLOGIST',
-          title: 'Тапсырманы кезеңдерге бөлу және ірілендірілген карточкалар',
-          content: '1-қадам: шартты белгі мен атауды сәйкестендіру. 2-қадам: тізбектегі элементті табу. 3-қадам: қарапайым электр сұлбасын оқу.',
+          title: 'Тапсырманы кезеңдерге бөлу және визуалды алгоритм',
+          content: '1-қадам: дайын үлгі бойынша блок-схеманы құрастыру. 2-қадам: негізгі командаларды енгізу. 3-қадам: нәтижені тексеру.',
           status: 'COMPLETED',
-          applications: { create: { institutionId: institution.id, appliedById: teacher.id, appliedAt: new Date('2026-11-18T09:00:00Z'), outcome: 'Сабақта ірілендірілген карточкалар қолданылды, студент 3 кезеңді орындады.' } },
+          applications: { create: { institutionId: institution.id, appliedById: teacher.id, appliedAt: new Date('2026-11-18T09:00:00Z'), outcome: 'Сабақта қадамдық карточкалар қолданылды, студент 3 кезеңді толық орындады.' } },
         },
       });
     }
@@ -272,10 +369,6 @@ async function main() {
       });
     }
 
-    await prisma.collaborationThread.updateMany({
-      where: { institutionId: institution.id, studentId: demoStudent.id, title: 'Консилиум · DEMO' },
-      data: { title: 'Психологиялық-педагогикалық консилиум' },
-    });
     let thread = await prisma.collaborationThread.findFirst({ where: { institutionId: institution.id, studentId: demoStudent.id } });
     if (!thread) {
       const members = [defectologist, teacher, psychologist, social];
@@ -287,8 +380,8 @@ async function main() {
           members: { create: members.map((member) => ({ userId: member.id })) },
           messages: {
             create: [
-              { authorId: teacher.id, body: 'Электротехника сабағында студент электр схемасын оқу тапсырмасында қиналады.', createdAt: new Date('2026-11-18T10:24:00Z') },
-              { authorId: defectologist.id, body: 'Тапсырманы шағын кезеңдерге бөлуді және ірілендірілген шартты белгілер карточкаларын ұсынамын.', createdAt: new Date('2026-11-18T11:02:00Z') },
+              { authorId: teacher.id, body: 'Практикалық сабақта студентке көлемді тапсырманы бірден орындау қиынға соғады.', createdAt: new Date('2026-11-18T10:24:00Z') },
+              { authorId: defectologist.id, body: 'Тапсырманы 3 шағын кезеңге бөлуді және визуалды алгоритм карточкаларын қолдануды ұсынамын.', createdAt: new Date('2026-11-18T11:02:00Z') },
               { authorId: psychologist.id, body: 'Мотивацияны қолдау бойынша қысқа тренинг жоспарға енгізілді.', createdAt: new Date('2026-11-18T11:15:00Z') },
             ],
           },
