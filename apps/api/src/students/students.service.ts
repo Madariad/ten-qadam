@@ -9,13 +9,13 @@ export class StudentsService {
   constructor(private readonly prisma: PrismaService, private readonly access: AccessService) {}
 
   async findAll(user: AuthContext, search?: string) {
-    if (user.roles.includes('ADMINISTRATOR')) throw new ForbiddenException('Администрации доступны только агрегированные показатели');
+    const isAdminOrDefectologist = user.roles.includes('ADMINISTRATOR') || user.roles.includes('DEFECTOLOGIST');
     const now = new Date();
     return this.prisma.student.findMany({
       where: {
         institutionId: user.institutionId,
         status: 'ACTIVE',
-        assignments: { some: { userId: user.userId, validFrom: { lte: now }, OR: [{ validUntil: null }, { validUntil: { gt: now } }] } },
+        ...(isAdminOrDefectologist ? {} : { assignments: { some: { userId: user.userId, validFrom: { lte: now }, OR: [{ validUntil: null }, { validUntil: { gt: now } }] } } }),
         ...(search ? { OR: [{ fullName: { contains: search } }, { studentCode: { contains: search } }] } : {}),
       },
       select: { id: true, studentCode: true, fullName: true, status: true, group: { select: { code: true, academicYear: true, specialty: { select: { nameKk: true, nameRu: true } } } } },

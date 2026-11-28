@@ -156,18 +156,42 @@ async function main() {
     },
   }).catch(() => undefined);
 
-  const demoAccounts = [
-    { login: 'demo-defectologist', name: 'Сағынбекова Қ.М.', role: 'DEFECTOLOGIST' as const, password: 'Defectolog2026!!' },
-    { login: 'demo-teacher', name: 'Айдарова А.С.', role: 'SUBJECT_TEACHER' as const, password: 'Teacher2026Pass!' },
-    { login: 'demo-psychologist', name: 'Нұрғалиева Д.Т.', role: 'PSYCHOLOGIST' as const, password: 'Psychologist2026!' },
-    { login: 'demo-social', name: 'Қасымова Г.Е.', role: 'SOCIAL_PEDAGOG' as const, password: 'SocialPed2026Pass!' },
+  // Migrate legacy demo-* logins to clean role logins
+  const legacyLogins: [string, string][] = [
+    ['demo-defectologist', 'defectologist'],
+    ['demo-teacher', 'teacher'],
+    ['demo-psychologist', 'psychologist'],
+    ['demo-social', 'social'],
   ];
-  const demoUsers = await Promise.all(demoAccounts.map((account) => getOrCreateDemoUser(institution.id, account.login, account.name, account.role, account.password)));
+  for (const [oldLogin, newLogin] of legacyLogins) {
+    const existingOld = await prisma.user.findUnique({
+      where: { institutionId_login: { institutionId: institution.id, login: oldLogin } },
+    });
+    const existingNew = await prisma.user.findUnique({
+      where: { institutionId_login: { institutionId: institution.id, login: newLogin } },
+    });
+    if (existingOld && !existingNew) {
+      await prisma.user.update({
+        where: { id: existingOld.id },
+        data: { login: newLogin },
+      });
+    } else if (existingOld && existingNew) {
+      await prisma.user.delete({ where: { id: existingOld.id } }).catch(() => undefined);
+    }
+  }
 
-  const defectologist = await prisma.user.findFirst({ where: { institutionId: institution.id, login: 'demo-defectologist' } });
-  const teacher = await prisma.user.findFirst({ where: { institutionId: institution.id, login: 'demo-teacher' } });
-  const psychologist = await prisma.user.findFirst({ where: { institutionId: institution.id, login: 'demo-psychologist' } });
-  const social = await prisma.user.findFirst({ where: { institutionId: institution.id, login: 'demo-social' } });
+  const staffAccounts = [
+    { login: 'defectologist', name: 'Сағынбекова Қ.М.', role: 'DEFECTOLOGIST' as const, password: 'Defectolog2026!!' },
+    { login: 'teacher', name: 'Айдарова А.С.', role: 'SUBJECT_TEACHER' as const, password: 'Teacher2026Pass!' },
+    { login: 'psychologist', name: 'Нұрғалиева Д.Т.', role: 'PSYCHOLOGIST' as const, password: 'Psychologist2026!' },
+    { login: 'social', name: 'Қасымова Г.Е.', role: 'SOCIAL_PEDAGOG' as const, password: 'SocialPed2026Pass!' },
+  ];
+  const demoUsers = await Promise.all(staffAccounts.map((account) => getOrCreateDemoUser(institution.id, account.login, account.name, account.role, account.password)));
+
+  const defectologist = await prisma.user.findFirst({ where: { institutionId: institution.id, login: 'defectologist' } });
+  const teacher = await prisma.user.findFirst({ where: { institutionId: institution.id, login: 'teacher' } });
+  const psychologist = await prisma.user.findFirst({ where: { institutionId: institution.id, login: 'psychologist' } });
+  const social = await prisma.user.findFirst({ where: { institutionId: institution.id, login: 'social' } });
 
   const collegeStudentsList: {
     code: string;
@@ -229,7 +253,7 @@ async function main() {
           institutionId: institution.id,
           userId: user.id,
           studentId: st.id,
-          subjectId: user.login === 'demo-teacher' ? subject.id : null,
+          subjectId: user.login === 'teacher' ? subject.id : null,
           assignedById: defectologist?.id ?? user.id,
         },
       });
@@ -646,8 +670,8 @@ async function main() {
     }
   }
 
-  console.log(`Seeded TEN QADAM for institution ${institution.code} with fictional demonstration records and PDF library files.`);
-  console.log(`Development-only users: admin / ${adminPassword}; demo-defectologist / Defectolog2026!!; demo-teacher / Teacher2026Pass!; demo-psychologist / Psychologist2026!; demo-social / SocialPed2026Pass!`);
+  console.log(`Seeded TEN QADAM for institution ${institution.code} with records and PDF library files.`);
+  console.log(`Users: admin / ${adminPassword}; defectologist / Defectolog2026!!; teacher / Teacher2026Pass!; psychologist / Psychologist2026!; social / SocialPed2026Pass!`);
 }
 
 main().catch((error) => { console.error(error); process.exitCode = 1; }).finally(async () => { await prisma.$disconnect(); });

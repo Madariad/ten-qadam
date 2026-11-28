@@ -12,7 +12,7 @@ export class AccessService {
   }
 
   async requireStudent(user: AuthContext, studentId: string, subjectId?: string) {
-    if (user.roles.includes('ADMINISTRATOR')) throw new ForbiddenException('Администрации доступны только сводные данные');
+    if (user.roles.includes('ADMINISTRATOR') || user.roles.includes('DEFECTOLOGIST')) return;
     const now = new Date();
     const assignment = await this.prisma.userStudentAssignment.findFirst({
       where: {
@@ -27,6 +27,7 @@ export class AccessService {
   }
 
   async assignedSubjectIds(user: AuthContext, studentId: string): Promise<string[] | null> {
+    if (user.roles.includes('ADMINISTRATOR') || user.roles.includes('DEFECTOLOGIST')) return null;
     const now = new Date();
     const assignments = await this.prisma.userStudentAssignment.findMany({
       where: { institutionId: user.institutionId, userId: user.userId, studentId, validFrom: { lte: now }, OR: [{ validUntil: null }, { validUntil: { gt: now } }] },

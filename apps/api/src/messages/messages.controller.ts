@@ -1,4 +1,4 @@
-import { Body, Controller, Get, NotFoundException, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, NotFoundException, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { SessionGuard } from '../auth/session.guard.js';
@@ -88,5 +88,24 @@ export class MessagesController {
     const message = await this.prisma.message.create({ data: { threadId, authorId: user.userId, body: body.body }, include: { author: { select: { id: true, displayName: true, roles: { include: { role: true } } } } } });
     await this.prisma.collaborationThread.update({ where: { id: threadId }, data: { updatedAt: new Date() } });
     return message;
+  }
+
+  @Delete('threads/:threadId/messages/:messageId')
+  async removeMessage(
+    @Req() request: Request,
+    @Param('threadId') threadId: string,
+    @Param('messageId') messageId: string,
+  ) {
+    const user = request.auth!;
+    await this.access.requireThreadMember(user, threadId);
+    const message = await this.prisma.message.findFirst({
+      where: { id: messageId, threadId },
+    });
+    if (!message) throw new NotFoundException('Сообщение не найдено');
+    if (message.authorId !== user.userId) {
+      throw new ForbiddenException('Вы можете удалять только собственные сообщения');
+    }
+    await this.prisma.message.delete({ where: { id: messageId } });
+    return { ok: true };
   }
 }

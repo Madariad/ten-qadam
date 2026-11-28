@@ -33,7 +33,6 @@ import NotificationsNoneRounded from '@mui/icons-material/NotificationsNoneRound
 import KeyboardArrowDownRounded from '@mui/icons-material/KeyboardArrowDownRounded';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import SendRounded from '@mui/icons-material/SendRounded';
-import TrendingUpRounded from '@mui/icons-material/TrendingUpRounded';
 import PersonRounded from '@mui/icons-material/PersonRounded';
 import AssignmentRounded from '@mui/icons-material/AssignmentRounded';
 import EventAvailableRounded from '@mui/icons-material/EventAvailableRounded';
@@ -99,7 +98,7 @@ type PlanAction = {
   status: PlanStatus;
   result?: string | null;
 };
-type Message = (typeof initialMessages)[number];
+type Message = (typeof initialMessages)[number] & { authorId?: string };
 type StudentRecord = { id: string; code: string; name: string; group: string; specialty: string; status: string };
 type ApiGoal = {
   id: string;
@@ -452,7 +451,6 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
         } catch {
           /* ignore */
         }
-        return;
       }
 
       if (role === 'defectologist') {
@@ -490,7 +488,7 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
   }, [demoMode, role, language, refreshTick]);
 
   useEffect(() => {
-    if (demoMode || !selectedStudentId || role === 'admin') return;
+    if (demoMode || !selectedStudentId) return;
     let active = true;
     async function loadStudentWorkspace() {
       const [profile, assessments, plans, threadList, notes] = await Promise.allSettled([
@@ -581,10 +579,10 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
   }, [demoMode, selectedStudentId, language, role, refreshTick]);
 
   useEffect(() => {
-    if (!demoMode && role !== 'admin' && assessmentSessions.length > 0) {
+    if (!demoMode && assessmentSessions.length > 0) {
       setChartRows(buildChartRows(assessmentSessions, selectedGoalId));
     }
-  }, [selectedGoalId, assessmentSessions, demoMode, role]);
+  }, [selectedGoalId, assessmentSessions, demoMode]);
 
   const allowed = permissions[role];
   const canOpen = (section: SectionKey) => allowed.includes(section);
@@ -658,7 +656,7 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
           setThreadId(activeThreadId);
           setThreads((prev) => [created, ...prev]);
         }
-        const saved = await apiRequest<{ id: string; body: string; createdAt: string; author: { displayName: string } }>(`/threads/${activeThreadId}/messages`, {
+        const saved = await apiRequest<{ id: string; authorId?: string; body: string; createdAt: string; author: { id?: string; displayName: string } }>(`/threads/${activeThreadId}/messages`, {
           method: 'POST',
           body: JSON.stringify({ body: trimmed }),
         });
@@ -666,6 +664,7 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
           ...current,
           {
             id: saved.id,
+            authorId: saved.authorId ?? saved.author.id ?? authenticatedUser?.id ?? authenticatedUser?.userId,
             author: saved.author.displayName,
             role,
             time: new Date(saved.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -681,9 +680,22 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
     }
     setMessages((current) => [
       ...current,
-      { id: `m-${now.getTime()}`, author, role, time, textKk: trimmed, textRu: trimmed },
+      { id: `m-${now.getTime()}`, authorId: 'demo-self', author, role, time, textKk: trimmed, textRu: trimmed },
     ]);
     setMessageText('');
+  }
+
+  async function deleteMessage(messageId: string) {
+    if (!demoMode && threadId) {
+      try {
+        await apiRequest(`/threads/${threadId}/messages/${messageId}`, { method: 'DELETE' });
+      } catch (error) {
+        setToast(error instanceof Error ? error.message : 'Не удалось удалить сообщение');
+        return;
+      }
+    }
+    setMessages((current) => current.filter((m) => m.id !== messageId));
+    setToast(language === 'kk' ? 'Хабарлама өшірілді' : 'Сообщение удалено');
   }
 
   async function changePlanStatus(id: string) {
@@ -889,6 +901,7 @@ function WorkspaceApp({ demoMode, authenticatedUser, onLogout }: { demoMode: boo
                   messageText={messageText}
                   setMessageText={setMessageText}
                   sendMessage={sendMessage}
+                  deleteMessage={deleteMessage}
                   threads={threads}
                   activeThreadId={threadId}
                   onSelectThread={selectThread}
@@ -1235,10 +1248,14 @@ function UpdateRow({ icon, title, date }: { icon: 'document' | 'people' | 'chart
 function CollaborationPanel({
   language,
   t,
+  role,
+  currentUserId,
+  demoMode,
   messages,
   messageText,
   setMessageText,
   sendMessage,
+  deleteMessage,
   studentInfo,
   threads,
   activeThreadId,
@@ -1248,12 +1265,15 @@ function CollaborationPanel({
 }: {
   language: Language;
   t: typeof copy.kk;
+  role: Role;
+  currentUserId?: string;
+  demoMode?: boolean;
   messages: Message[];
   messageText: string;
   setMessageText: (value: string) => void;
   sendMessage: (event: FormEvent<HTMLFormElement>) => void;
+  deleteMessage: (id: string) => Promise<void>;
   studentInfo: StudentView | null;
-  demoMode?: boolean;
   threads: ApiThread[];
   activeThreadId: string | null;
   onSelectThread: (id: string) => void;
@@ -1313,16 +1333,36 @@ function CollaborationPanel({
             </strong>
           </div>
           <div className="conversation-messages scrollable-chat" aria-live="polite">
-            {messages.map((message) => (
-              <div className={`message-line ${message.role}`} key={message.id}>
-                <Avatar className={`message-avatar ${message.role}`}>{roleIcons[message.role]}</Avatar>
-                <div className="message-copy">
-                  <strong>{message.author}</strong>
-                  <p>{language === 'kk' ? message.textKk : message.textRu}</p>
+            {messages.map((message) => {
+              const isOwnMessage = Boolean(
+                (currentUserId && message.authorId === currentUserId) ||
+                (demoMode && (message.authorId === 'demo-self' || message.role === role)),
+              );
+              return (
+                <div className={`message-line ${message.role}`} key={message.id}>
+                  <Avatar className={`message-avatar ${message.role}`}>{roleIcons[message.role]}</Avatar>
+                  <div className="message-copy">
+                    <strong>{message.author}</strong>
+                    <p>{language === 'kk' ? message.textKk : message.textRu}</p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <time>{message.time}</time>
+                    {isOwnMessage && (
+                      <Tooltip title={language === 'kk' ? 'Хабарламаны өшіру' : 'Удалить сообщение'}>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => void deleteMessage(message.id)}
+                          aria-label={language === 'kk' ? 'Хабарламаны өшіру' : 'Удалить сообщение'}
+                        >
+                          <DeleteOutlineRounded fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </div>
                 </div>
-                <time>{message.time}</time>
-              </div>
-            ))}
+              );
+            })}
             {messages.length === 0 && (
               <div className="no-live-data">
                 {language === 'kk' ? 'Әзірге хабарлама жоқ. Талқылауды бастаңыз.' : 'Сообщений пока нет. Начните обсуждение.'}
@@ -1423,6 +1463,7 @@ function SectionContent({
   messageText,
   setMessageText,
   sendMessage,
+  deleteMessage,
   threads,
   activeThreadId,
   onSelectThread,
@@ -1431,7 +1472,6 @@ function SectionContent({
   subjectOptions,
   specialistOptions,
   privateNotes,
-  summary,
   adminUsers,
   onRefresh,
   onReloadLibrary,
@@ -1463,6 +1503,7 @@ function SectionContent({
   messageText: string;
   setMessageText: (value: string) => void;
   sendMessage: (event: FormEvent<HTMLFormElement>) => void;
+  deleteMessage: (id: string) => Promise<void>;
   threads: ApiThread[];
   activeThreadId: string | null;
   onSelectThread: (id: string) => void;
@@ -1591,7 +1632,7 @@ function SectionContent({
       ? resourceRows.filter((item) => item.kind === 'guide')
       : activeSection === 'ebbk'
         ? resourceRows.filter((item) => item.kind === 'ebbk')
-        : resourceRows.filter((item) => item.kind === 'method' || item.kind === 'guide');
+        : resourceRows.filter((item) => item.kind === 'method');
   const filteredResources = resources.filter((item) => {
     const matchesSearch = `${item.title} ${item.ruTitle} ${item.summary} ${item.ruSummary} ${item.category}`.toLocaleLowerCase().includes(q);
     if (!matchesSearch) return false;
@@ -2124,8 +2165,8 @@ function SectionContent({
                 : (language === 'kk' ? 'Құжат жүктеу (PDF / DOC)' : 'Загрузить документ (PDF / DOC)')}
             </Button>
           )}
-          {activeSection === 'metrics' && role !== 'admin' && (role === 'teacher' || role === 'defectologist') && (
-            <Button variant="contained" startIcon={<AddRounded />} onClick={() => setAssessDialogOpen(true)}>
+          {['metrics', 'reports'].includes(activeSection) && role !== 'admin' && (role === 'teacher' || role === 'defectologist') && (
+            <Button variant="outlined" startIcon={<AddRounded />} onClick={() => setAssessDialogOpen(true)}>
               {language === 'kk' ? 'Бағалау енгізу' : 'Внести оценку'}
             </Button>
           )}
@@ -2141,7 +2182,7 @@ function SectionContent({
       </div>
 
       {/* Student Selector Bar across student-scoped tabs */}
-      {role !== 'admin' && ['metrics', 'plans', 'collaboration'].includes(activeSection) && studentRows.length > 0 && (
+      {['metrics', 'plans', 'collaboration', 'reports'].includes(activeSection) && studentRows.length > 0 && (
         <div className="student-selector-bar">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <PersonRounded color="primary" />
@@ -2487,7 +2528,7 @@ function SectionContent({
                   )}
                 </Tabs>
 
-                {/* Sub-tab 0: General Info & Assigned Specialists */}
+                {/* Sub-tab 0: General Info */}
                 {studentTab === 0 && (
                   <div className="cycle-list">
                     <div className="profile-facts">
@@ -2501,25 +2542,11 @@ function SectionContent({
                         <strong>{t.goal}</strong>
                         <span>{studentInfo.goal}</span>
                       </div>
-                      <div className="profile-fact">
-                        <span className="fact-icon"><GroupsRounded /></span>
-                        <strong>{t.responsible}</strong>
-                        <span>
-                          {studentInfo.assignments.length > 0
-                            ? studentInfo.assignments.map((a) => `${a.user.displayName}${a.subject ? ` (${language === 'kk' ? a.subject.nameKk : a.subject.nameRu})` : ''}`).join(', ')
-                            : (language === 'kk' ? 'Дефектолог, Пән оқытушысы, Психолог, Әлеуметтік педагог' : 'Дефектолог, Преподаватель, Психолог, Социальный педагог')}
-                        </span>
-                      </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
                       {['defectologist', 'psychologist', 'social'].includes(role) && (
                         <Button size="small" variant="outlined" startIcon={<AddRounded />} onClick={() => setProfileDialogOpen(true)}>
                           {language === 'kk' ? 'Қажеттілік профилін қосу' : 'Добавить профиль поддержки'}
-                        </Button>
-                      )}
-                      {role === 'defectologist' && (
-                        <Button size="small" variant="outlined" startIcon={<AddRounded />} onClick={() => setAssignDialogOpen(true)}>
-                          {language === 'kk' ? 'Маман бекіту' : 'Назначить специалиста'}
                         </Button>
                       )}
                     </div>
@@ -2864,10 +2891,13 @@ function SectionContent({
         <CollaborationPanel
           language={language}
           t={t}
+          role={role}
+          currentUserId={currentUserId}
           messages={messages}
           messageText={messageText}
           setMessageText={setMessageText}
           sendMessage={sendMessage}
+          deleteMessage={deleteMessage}
           studentInfo={studentInfo}
           demoMode={demoMode}
           threads={threads}
@@ -2880,33 +2910,41 @@ function SectionContent({
 
       {/* TAB 8: DOCUMENTS & REPORTS */}
       {activeSection === 'reports' && (
-        <div className="reports-grid">
-          <Paper className="report-summary" elevation={0}>
-            <div className="report-icon"><TrendingUpRounded /></div>
-            <span>{t.planProgress}</span>
-            <strong>{demoMode ? '78%' : summary ? `${summary.actionCompletion}%` : '—'}</strong>
-            <small>{language === 'kk' ? 'Қолдау жоспары іс-шараларының орындалу үлесі' : 'Доля выполненных мероприятий плана поддержки'}</small>
-          </Paper>
-          <Paper className="report-summary" elevation={0}>
-            <div className="report-icon teal"><CheckCircleRounded /></div>
-            <span>{language === 'kk' ? 'Маман ұсынымының сабақта қолданылу үлесі' : 'Доля рекомендаций, применённых на занятиях'}</span>
-            <strong>{demoMode ? '85%' : summary ? `${summary.recommendationsApplied ?? 100}%` : '—'}</strong>
-            <small>{language === 'kk' ? 'Жеке дерексіз жиынтық индикатор' : 'Обезличенный сводный индикатор'}</small>
-          </Paper>
-          <Paper className="report-table-card" elevation={0}>
-            <h2>{language === 'kk' ? 'Оқу мақсаттары бойынша жиынтық динамика (Бастапқы vs Қайта бағалау)' : 'Сводная динамика по учебным целям (Первичная vs Повторная оценка)'}</h2>
-            <BarChart language={language} data={metricRows} />
-            <div className="chart-legend">
-              <span><i className="legend-blue" />{t.baseline}</span>
-              <span><i className="legend-green" />{t.reassessment}</span>
+        <Paper className="section-chart-card" elevation={0}>
+          <div className="chart-meta">
+            <div>
+              <h2 style={{ margin: '0 0 4px', fontSize: 16 }}>
+                {language === 'kk'
+                  ? '1 жарты жылдық бойынша жылдық динамика'
+                  : '1 жарты жылдық бойынша жылдық динамика (Годовая динамика за 1 полугодие)'}
+              </h2>
+              <strong>
+                {studentInfo
+                  ? `${language === 'kk' ? 'Студент' : 'Студент'}: ${studentInfo.name} (${studentInfo.group}) · ${studentInfo.specialty}`
+                  : (language === 'kk' ? 'Колледж бойынша жинақталған білім динамикасы' : 'Сводная учебная динамика по колледжу')}
+              </strong>
+              <div style={{ marginTop: 4, fontSize: 11, color: '#586382' }}>{studentInfo?.goal ?? t.notice}</div>
             </div>
-            <Alert severity="info" icon={false}>
-              {language === 'kk'
-                ? 'Есептерде жеке медициналық диагноздар жиналмайды. CSV экспорты тек оқу мақсаттарының орындалу динамикасын қамтиды.'
-                : 'В отчётах не собираются медицинские диагнозы. CSV-экспорт содержит только динамику достижения учебных целей.'}
-            </Alert>
-          </Paper>
-        </div>
+            {studentInfo && studentInfo.goals.length > 1 && (
+              <Select
+                size="small"
+                value={selectedGoalId ?? studentInfo.goals[0]?.id ?? ''}
+                onChange={(e) => onSelectGoal(e.target.value)}
+                style={{ minWidth: 220, fontSize: 11 }}
+              >
+                {studentInfo.goals.map((g) => (
+                  <MenuItem key={g.id} value={g.id}>{language === 'kk' ? g.titleKk : g.titleRu}</MenuItem>
+                ))}
+              </Select>
+            )}
+          </div>
+          <BarChart language={language} data={metricRows} />
+          <div className="chart-legend">
+            <span><i className="legend-blue" />{t.baseline}</span>
+            <span><i className="legend-green" />{t.reassessment}</span>
+          </div>
+          <div className="chart-disclaimer">{t.notice}</div>
+        </Paper>
       )}
 
       {/* IN-APP DOCUMENT VIEWER DIALOG (PDF / IMAGES / OTHER FILES) */}
@@ -3640,6 +3678,7 @@ function mapThreadMessages(thread: ApiThread): Message[] {
     const authorRole = roleFromApi[authorRoleCode] ?? 'defectologist';
     return {
       id: message.id,
+      authorId: message.authorId,
       author: message.author.displayName,
       role: authorRole,
       time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
